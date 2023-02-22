@@ -4,8 +4,10 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh 'docker build -f back-end/Dockerfile -t hp/node-web-app .'
+                 dir('back-end') {
+                sh 'docker build -t hp/node-web-app .'
                 sh 'docker run -p 3100:3100 -d hp/node-web-app'
+                 }
             }
         }
     }
