@@ -1,0 +1,14 @@
+pipeline {
+    //agent { docker { image 'node:16.17.1-alpine' } }
+    agent any
+    stages {
+        stage('build') {
+            steps {
+                 dir('back-end') {
+                sh 'docker build -t hp/node-web-app .'
+                sh 'docker run -p 3100:3100 -d hp/node-web-app'
+                 }
+            }
+        }
+    }
+}
