@@ -11,6 +11,11 @@
 - First Do `npm install`
 - run your dev environment using `npm run start`
 
+## Mongoose & MongoDB
+
+- Mongosse `https://mongoosejs.com/docs/index.html`
+- MongoDB official Documentation `https://www.mongodb.com/`
+
 ## Basic Model training
 
 https://techpro.ninja/how-to-train-openai-gpt-3/

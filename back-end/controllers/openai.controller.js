@@ -53,7 +53,7 @@ exports.getAnswareFromFineTuneModel = async (req, res) => {
   try {
     const data = req.body
     const response = await openai.createCompletion({
-      model: 'ft-io6A8aiVUDIcyFeSrN0m4ms7',
+      model: 'davinci:ft-personal-2023-02-22-11-40-01',
       prompt: `${data.queryPrompt} ?`,
       temperature: 0.6,
       max_tokens: 60,
