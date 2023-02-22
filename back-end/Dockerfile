@@ -15,5 +15,5 @@ RUN npm install
 # Bundle app source
 COPY . .
 
-EXPOSE 4100
+EXPOSE 3100
 CMD [ "node", "server.js" ]
