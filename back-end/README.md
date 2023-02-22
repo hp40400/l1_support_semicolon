@@ -6,6 +6,11 @@
 
 - duplicate `.env.example` and rename it to `.env`
 
+## Up and run the project
+
+- First Do `npm install`
+- run your dev environment using `npm run start`
+
 ## Basic Model training
 
 https://techpro.ninja/how-to-train-openai-gpt-3/
