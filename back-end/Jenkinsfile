@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh 'docker ps'
-                sh 'ls'
+                sh 'docker build back-end/Dockerfile -t hp/node-web-app'
+                sh 'docker run -p 4100:4100 -d hp/node-web-app'
             }
         }
     }
