@@ -190,7 +190,7 @@ exports.deleteClarificationById = async (req, res) => {
 
     await ClarificationModel.findByIdAndDelete(clarificationId)
 
-    res.status(410).json({
+    res.status(200).json({
       status: 'success',
     })
   } catch (error) {
