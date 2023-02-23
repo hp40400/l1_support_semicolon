@@ -110,16 +110,9 @@ exports.askAndClarify = async (req, res) => {
       newConversationData,
     ]
 
-    console.log('check my new Data', newUpdatedData)
-
-    const latestClarificationData = await ClarificationModel.findByIdAndUpdate(
-      clarificationId,
-      {
-        conversations: newUpdatedData.conversations,
-      },
-    )
-
-    console.log('Get My latest clarification data', clarificationData)
+    await ClarificationModel.findByIdAndUpdate(clarificationId, {
+      conversations: newUpdatedData.conversations,
+    })
 
     res.status(200).json({
       status: 'success',
@@ -153,7 +146,7 @@ async function getAnswareFromPromptModel(queryPrompt) {
 
     return response.data.choices[0].text
   } catch (error) {
-    console.log(error)
+    return error
   }
 }
 
