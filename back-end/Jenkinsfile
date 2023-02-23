@@ -11,7 +11,8 @@ pipeline {
         stage('build') {
             steps {
                  dir('back-end') {
-                     sh 'ls ../../../../'
+                     sh 'ls ../../../'
+                     
                 sh 'API=$(cat ../../../../env)'
                      
                 echo 'key is $API'
