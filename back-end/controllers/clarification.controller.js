@@ -1,35 +1,35 @@
 // Import the OpenAI
-const openai = require('../configs/openai.config')
+const openai = require("../configs/openai.config");
 
-const ClarificationModel = require('../models/clarificationModel')
+const ClarificationModel = require("../models/clarificationModel");
 
 async function getSortClarificationData() {
   const clarificationList = await ClarificationModel.find().sort({
     createdAt: -1,
-  })
+  });
 
-  return clarificationList
+  return clarificationList;
 }
 
 // Get All Clarifications
 exports.getAllClarificationList = async (req, res) => {
   try {
-    const clarificationList = await getSortClarificationData()
+    const clarificationList = await getSortClarificationData();
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       result: clarificationList.length,
       data: {
         clarificationList,
       },
-    })
+    });
   } catch (error) {
     res.status(400).json({
-      status: 'fail',
+      status: "fail",
       message: error.message,
-    })
+    });
   }
-}
+};
 
 // Create New Clarification
 exports.createNewClarification = async (req, res) => {
@@ -42,98 +42,108 @@ exports.createNewClarification = async (req, res) => {
         reason: null,
       },
       createdAt: Date.now(),
+    };
+
+    const existingClarification = await ClarificationModel.findOne(
+      newClarificationData
+    );
+
+    if (existingClarification) {
+      return res.status(400).json({ message: "Clarification already exists" });
     }
 
     const newClarification = await ClarificationModel.create(
-      newClarificationData,
-    )
+      newClarificationData
+    );
 
     res.status(201).json({
-      status: 'success',
+      status: "success",
       data: {
         newClarification,
       },
-    })
+    });
   } catch (error) {
     res.status(400).json({
-      status: 'fail',
+      status: "fail",
       message: error.message,
-    })
+    });
   }
-}
+};
 
 // retrive clarificationById
 exports.retriveClarificationDataById = async (req, res) => {
-  console.log(req.params)
+  console.log(req.params);
   try {
     const clarificationData = await ClarificationModel.findById(
-      req.params.clarificationId,
-    )
+      req.params.clarificationId
+    );
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         clarificationData,
       },
-    })
+    });
   } catch (error) {
     res.status(400).json({
-      status: 'fail',
+      status: "fail",
       message: error.message,
-    })
+    });
   }
-}
+};
 
 // start conversation
 exports.askAndClarify = async (req, res) => {
   try {
-    const clarificationId = req.params.clarificationId
-    const queryPrompt = req.body.request
+    const clarificationId = req.params.clarificationId;
+    const queryPrompt = req.body.request;
 
     const queryPromptAnswareResponse = await getAnswareFromPromptModel(
-      queryPrompt,
-    )
+      queryPrompt
+    );
 
-    const clarificationData = await ClarificationModel.findById(clarificationId)
+    const clarificationData = await ClarificationModel.findById(
+      clarificationId
+    );
 
     const newUpdatedData = {
       ...clarificationData,
-    }
+    };
 
     const newConversationData = {
       request: queryPrompt,
       response: queryPromptAnswareResponse,
       timestamp: Date.now(),
-    }
+    };
     newUpdatedData.conversations = [
       ...clarificationData.conversations,
       newConversationData,
-    ]
+    ];
 
-    console.log('check my new Data', newUpdatedData)
+    console.log("check my new Data", newUpdatedData);
 
     const latestClarificationData = await ClarificationModel.findByIdAndUpdate(
       clarificationId,
       {
         conversations: newUpdatedData.conversations,
-      },
-    )
+      }
+    );
 
-    console.log('Get My latest clarification data', clarificationData)
+    console.log("Get My latest clarification data", clarificationData);
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         newConversationData,
       },
-    })
+    });
   } catch (error) {
     res.status(400).json({
-      status: 'fail',
+      status: "fail",
       message: error.message,
-    })
+    });
   }
-}
+};
 
 async function getAnswareFromPromptModel(queryPrompt) {
   // Bringing in the training model
@@ -141,18 +151,18 @@ async function getAnswareFromPromptModel(queryPrompt) {
     P: Who is this raheem? 
     A: Raheem Mohamed is a software engineer from Sri Lanka. He is one of the youngest software engineers in the country and has a Bachelor's degree in Computing from Teesside University in the United Kingdom. He is currently working as an Engineer Lead at Persistent Pvt Ltd, specializing in Frontend and Backend development with NodeJS and Express, and using Angular 7, Typescript, HTML5, Sass, and JavaScript for the front-end. He is a big fan of Javascript. 
     P: is he frontend developer ?
-    A: Yes, he is a frontend developer. He specializes in Frontend Development and Backend Development with NodeJS and Express. For front-end development, he is using Angular 7, Typescript, HTML5, Sass, and JavaScript.`
+    A: Yes, he is a frontend developer. He specializes in Frontend Development and Backend Development with NodeJS and Express. For front-end development, he is using Angular 7, Typescript, HTML5, Sass, and JavaScript.`;
 
   try {
     const response = await openai.createCompletion({
-      model: 'text-davinci-003',
+      model: "text-davinci-003",
       prompt: `${promptContext} ${queryPrompt} ?`,
       temperature: 0.6,
       max_tokens: 60,
-    })
+    });
 
-    return response.data.choices[0].text
+    return response.data.choices[0].text;
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }

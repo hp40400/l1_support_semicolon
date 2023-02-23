@@ -1,33 +1,36 @@
 // Mongoose
-const mongoose = require('mongoose')
-const dotenv = require('dotenv')
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 
-dotenv.config({ path: './.env' })
+dotenv.config({ path: "./.env" });
 
-const express = require('express')
-const bodyParser = require('body-parser')
+const express = require("express");
+const bodyParser = require("body-parser");
 
 // Router file
-const openAIRoute = require('./routes/openaiRoute')
-const clarificationRoute = require('./routes/clarificationRoute')
+const openAIRoute = require("./routes/openaiRoute");
+const clarificationRoute = require("./routes/clarificationRoute");
 
-const app = express()
-app.use(bodyParser.json())
+const app = express();
+app.use(bodyParser.json());
 
-const port = 3100
+const port = 3100;
 
 const DB = process.env.DATABASE.replace(
-  '<PASSWORD>',
-  process.env.DATABASE_PASSWORD,
-)
+  "<PASSWORD>",
+  process.env.DATABASE_PASSWORD
+);
 
 // MongoDB Connection
-mongoose.connect(DB).then(() => console.log('DB connection successful!'))
+mongoose
+  .connect(DB)
+  .then(() => console.log("DB connection successful!"))
+  .catch((error) => console.log(error));
 
 // Route
-app.use('/openai-api', openAIRoute)
-app.use('/api/clarification', clarificationRoute)
+app.use("/openai-api", openAIRoute);
+app.use("/api/clarification", clarificationRoute);
 
 app.listen(port, () => {
-  console.log(`Node server listening at http://localhost:${port}`)
-})
+  console.log(`Node server listening at http://localhost:${port}`);
+});

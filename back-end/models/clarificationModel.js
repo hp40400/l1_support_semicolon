@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
 /**
  * Schema is where define the definition of the structures such as type, validation, default value etc.
@@ -6,7 +6,7 @@ const mongoose = require('mongoose')
 const clarificationSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: [true, 'Clarification Title is must'],
+    required: [true, "Clarification Title is must"],
   },
   conversations: [{}],
   feedback: {
@@ -17,9 +17,9 @@ const clarificationSchema = new mongoose.Schema({
     type: Date,
     default: Date.now(),
   },
-})
+});
 
 // Model is the place where define schema and now this model includes with the model methods (ex: find, insertOne || save)
-const ClarificationModel = mongoose.model('Clarification', clarificationSchema)
+const ClarificationModel = mongoose.model("Clarification", clarificationSchema);
 
-module.exports = ClarificationModel
+module.exports = ClarificationModel;
