@@ -44,6 +44,14 @@ exports.createNewClarification = async (req, res) => {
       createdAt: Date.now(),
     }
 
+    const existingClarification = await ClarificationModel.findOne(
+      newClarificationData,
+    )
+
+    if (existingClarification) {
+      return res.status(400).json({ message: 'Clarification already exists' })
+    }
+
     const newClarification = await ClarificationModel.create(
       newClarificationData,
     )
