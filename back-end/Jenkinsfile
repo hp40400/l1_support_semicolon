@@ -11,7 +11,7 @@ pipeline {
         stage('build') {
             steps {
                  dir('back-end') {
-                     sh 'ls ../../../../env'
+                     sh 'ls ../../../../'
                      sh 'cat ../../../../env'
                      
                 sh 'API=$(cat ../../../../env)'
