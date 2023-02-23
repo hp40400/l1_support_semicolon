@@ -11,8 +11,8 @@ pipeline {
         stage('build') {
             steps {
                  dir('back-end') {
-                     sh 'ls ../../../../'
-                     sh 'cat ../../../../env'
+                     sh 'ls ../../../../../jenkins_home/'
+                     sh 'cat ../../../../../jenkins_home/env'
                      
                 sh 'API=$(cat ../../../../env)'
                      
