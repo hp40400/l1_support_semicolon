@@ -13,7 +13,7 @@ pipeline {
                  dir('back-end') {
                 sh 'API=$(cat ../../../env)'
                 echo 'key is $API'
-                sh 'sed -i 's/OPENAI_API_KEY_HERE/$API/' .env'
+                sh "sed -i 's/OPENAI_API_KEY_HERE/$API/' .env"
                 sh 'OPENAI_API_KEY_HERE'
                 sh 'docker stop frontend || true'
                 sh 'docker rm frontend || true'
