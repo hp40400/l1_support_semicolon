@@ -7,5 +7,11 @@ const clarificationController = require('../controllers/clarification.controller
 clarificationRoute
   .route('/')
   .get(clarificationController.getAllClarificationList)
+  .post(clarificationController.createNewClarification)
+
+clarificationRoute
+  .route('/:clarificationId')
+  .get(clarificationController.retriveClarificationDataById)
+  .post(clarificationController.askAndClarify)
 
 module.exports = clarificationRoute
