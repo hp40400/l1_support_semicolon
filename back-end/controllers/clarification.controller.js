@@ -199,3 +199,26 @@ exports.deleteClarificationById = async (req, res) => {
     })
   }
 }
+
+exports.submitClarificationFeedback = async (req, res) => {
+  try {
+    const clarificationId = req.params.clarificationId
+
+    await ClarificationModel.findByIdAndUpdate(clarificationId, {
+      feedback: {
+        is_satisfied: req.body.is_satisfied,
+        reason: req.body.reason,
+      },
+    })
+
+    res.status(410).json({
+      status: 'success',
+      message: 'Thank you for your feedback',
+    })
+  } catch (error) {
+    res.status(400).json({
+      status: 'fail',
+      message: error.message,
+    })
+  }
+}

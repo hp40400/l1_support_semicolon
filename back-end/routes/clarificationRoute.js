@@ -16,4 +16,8 @@ clarificationRoute
   .patch(clarificationController.updateClarificationTitleById)
   .delete(clarificationController.deleteClarificationById)
 
+clarificationRoute
+  .route('/feedback/:clarificationId')
+  .patch(clarificationController.submitClarificationFeedback)
+
 module.exports = clarificationRoute
