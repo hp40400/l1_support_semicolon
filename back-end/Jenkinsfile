@@ -14,11 +14,13 @@ pipeline {
                      sh 'ls ../../../'
                      sh 'cat ../../../env'
                      
-                sh 'API=$(cat ../../../env)'
-                     
-                echo 'key is $API'
-                sh "sed -i 's/OPENAI_API_KEY_HERE/$API/' .env"
-                sh 'OPENAI_API_KEY_HERE'
+                sh '''
+                API=$(cat ../../../env)'
+                echo $API
+                sed -i 's/OPENAI_API_KEY_HERE/$API/' .env
+                '''
+
+                sh "cat .env"
                 sh 'docker stop frontend || true'
                 sh 'docker rm frontend || true'
                 sh 'docker rmi hp/node-web-app || true'
