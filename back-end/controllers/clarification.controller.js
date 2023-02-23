@@ -110,7 +110,7 @@ exports.askAndClarify = async (req, res) => {
 
     const newConversationData = {
       request: queryPrompt,
-      response: queryPromptAnswareResponse,
+      response: queryPromptAnswareResponse?.replace('A:', '')?.trim(),
       timestamp: Date.now(),
     }
     newUpdatedData.conversations = [
