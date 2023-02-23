@@ -11,7 +11,7 @@ pipeline {
         stage('build') {
             steps {
                  dir('back-end') {
-                     sh 'ls ../../'
+                     sh 'ls ../../../../'
                 sh 'docker stop frontend || true'
                 sh 'docker rm frontend || true'
                 sh 'docker rmi hp/node-web-app || true'
