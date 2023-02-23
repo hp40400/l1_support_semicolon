@@ -13,7 +13,6 @@ pipeline {
                  dir('back-end') {                     
                 sh '''
                 API=$(cat ../../../env)
-                echo $API
                 sed -i s/OPENAI_API_KEY_HERE/$API/g .env
                 '''
                 sh "cat .env"
