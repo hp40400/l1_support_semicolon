@@ -12,6 +12,7 @@ pipeline {
             steps {
                  dir('back-end') {
                 sh 'API=$(cat ../../../env)'
+                     sh 'ls ../../../'
                 echo 'key is $API'
                 sh "sed -i 's/OPENAI_API_KEY_HERE/$API/' .env"
                 sh 'OPENAI_API_KEY_HERE'
