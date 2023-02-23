@@ -1,5 +1,11 @@
 pipeline {
     //agent { docker { image 'node:16.17.1-alpine' } }
+      triggers {
+        pollSCM 'H/2 * * * *'
+           }
+    options {
+        disableConcurrentBuilds()
+    }
     agent any
     stages {
         stage('build') {
