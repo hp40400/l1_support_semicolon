@@ -1,6 +1,7 @@
 // Mongoose
 const mongoose = require('mongoose')
 const dotenv = require('dotenv')
+const cors = require('cors')
 
 dotenv.config({ path: './.env' })
 
@@ -12,6 +13,8 @@ const openAIRoute = require('./routes/openaiRoute')
 const clarificationRoute = require('./routes/clarificationRoute')
 
 const app = express()
+// CORS origin whitelisting
+app.use(cors())
 app.use(bodyParser.json())
 
 const port = 3100

@@ -13,5 +13,7 @@ clarificationRoute
   .route('/:clarificationId')
   .get(clarificationController.retriveClarificationDataById)
   .post(clarificationController.askAndClarify)
+  .patch(clarificationController.updateClarificationTitleById)
+  .delete(clarificationController.deleteClarificationById)
 
 module.exports = clarificationRoute

@@ -156,3 +156,46 @@ async function getAnswareFromPromptModel(queryPrompt) {
     console.log(error)
   }
 }
+
+exports.updateClarificationTitleById = async (req, res) => {
+  try {
+    const clarificationId = req.params.clarificationId
+    const latestTitle = req.body.title
+
+    const latestResponse = await ClarificationModel.findByIdAndUpdate(
+      clarificationId,
+      {
+        title: latestTitle,
+      },
+    )
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        title: latestTitle,
+      },
+    })
+  } catch (error) {
+    res.status(400).json({
+      status: 'fail',
+      message: error.message,
+    })
+  }
+}
+
+exports.deleteClarificationById = async (req, res) => {
+  try {
+    const clarificationId = req.params.clarificationId
+
+    await ClarificationModel.findByIdAndDelete(clarificationId)
+
+    res.status(410).json({
+      status: 'success',
+    })
+  } catch (error) {
+    res.status(400).json({
+      status: 'fail',
+      message: error.message,
+    })
+  }
+}
