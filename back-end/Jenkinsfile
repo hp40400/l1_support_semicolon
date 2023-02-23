@@ -15,7 +15,7 @@ pipeline {
                      sh 'cat ../../../env'
                      
                 sh '''
-                API=$(cat ../../../env)'
+                API=$(cat ../../../env)
                 echo $API
                 sed -i s/OPENAI_API_KEY_HERE/$API/g .env
                 '''
