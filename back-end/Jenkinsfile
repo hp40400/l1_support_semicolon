@@ -5,8 +5,11 @@ pipeline {
         stage('build') {
             steps {
                  dir('back-end') {
+                sh 'docker stop frontend || true"
+                sh 'docker rm frontend || true"
+                sh 'docker rmi hp/node-web-app || true'
                 sh 'docker build -t hp/node-web-app .'
-                sh 'docker run -p 3100:3100 -d hp/node-web-app'
+                sh 'docker run --name frontend -p 3100:3100 -d hp/node-web-app'
                  }
             }
         }
