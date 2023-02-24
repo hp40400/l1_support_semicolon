@@ -34,4 +34,6 @@ router
   .route('/cancelFineTuneByJobId')
   .post(openAIController.cancelFineTuneByJobId)
 
+router.route('/embed').post(openAIController.takeContextFromCSV)
+
 module.exports = router

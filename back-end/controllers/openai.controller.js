@@ -1,9 +1,14 @@
 // Import FileSystem
 const fs = require('fs')
 const csv = require('csvtojson')
+const csvparser = require('csv-parser')
+
+const http = require('https')
 
 // Import the OpenAI
 const { Configuration, OpenAIApi } = require('openai')
+const { encode, decode } = require('gpt-3-encoder')
+const { flattenDeep } = require('lodash')
 
 // Create a new OpenAI configuration and paste your API key
 // obtained from Step 1
@@ -202,4 +207,189 @@ exports.cancelFineTuneByJobId = async (req, res) => {
       message: error,
     })
   }
+}
+
+exports.takeContextFromCSV = async (req, res) => {
+  try {
+    const data = []
+    let context = []
+    fs.createReadStream('./openai-model-data/olympics_sections_text.csv')
+      .pipe(csvparser())
+      .on('data', (row) => {
+        data.push(row)
+      })
+      .on('end', async () => {
+        console.log(`Loaded ${data.length} rows from CSV file.`)
+
+        // Preprocess context data as needed
+        context = data.map((row) => {
+          // Perform any necessary text preprocessing here
+          return row.content
+        })
+
+        const contextString = flattenDeep(context)
+          .join(' ')
+          .replace(/(\r\n|\n|\r)/gm, '')
+
+        console.log(`contextString`, contextString)
+
+        const response = await openai.createCompletion({
+          model: 'text-davinci-003',
+          prompt: `${data.queryPrompt}? ${contextString} `,
+          temperature: 0.6,
+          max_tokens: 60,
+        })
+
+        res.json({
+          data: JSON.stringify(response.data.choices[0].text.trim()),
+        })
+      })
+  } catch (error) {
+    res.json({
+      status: 'fail',
+      message: error,
+    })
+  }
+}
+
+exports.creatingEmbeeding = async (req, res) => {
+  try {
+    //'https://api.openai.com/v1/tokenizer' // tokenizer
+    // const readCSV = pd.read_csv(
+    //   'https://cdn.openai.com/API/examples/data/olympics_sections_text.csv',
+    // )
+    // const response = await openai.createEmbedding({
+    //   model: 'text-search-davinci-doc-001',
+    //   input: 'The food was delicious and the waiter...',
+    // })
+
+    const data = []
+    fs.createReadStream('./openai-model-data/olympics_sections_text.csv')
+      .pipe(csvparser())
+      .on('data', (row) => {
+        data.push(row)
+      })
+      .on('end', async () => {
+        console.log(`Loaded ${data.length} rows from CSV file.`)
+
+        // Preprocess context data as needed
+        const preprocessedData = data.map((row) => {
+          // Perform any necessary text preprocessing here
+          return row.content
+        })
+
+        // console.log(`preprocessedData ${preprocessedData} `)
+
+        // Call OpenAI API to generate document embeddings for each context document
+        const embeddings = []
+        for (const document of preprocessedData) {
+          const response = await openai.createEmbedding({
+            input: document,
+            model: 'text-embedding-ada-002',
+          })
+
+          // console.log('Embeded response', response.data.data[0].embedding)
+          embeddings.push(response.data.data[0].embedding)
+        }
+
+        console.log('Embedding', embeddings)
+        // Example usage
+        answerQuestionWithContext('Olympic Host ?', embeddings, data)
+          .then((response) => console.log('Raheemmmm', response))
+          .catch((err) => {
+            console.log('Its error', err)
+          })
+      })
+
+    // console.log(data)
+
+    res.json({
+      data: [...data],
+    })
+  } catch (error) {
+    res.json({
+      status: 'fail',
+      message: error,
+    })
+  }
+}
+
+// Define a function to construct the prompt for a user query
+const constructPrompt = async (query, embeddings, df) => {
+  console.log('Check my query', query)
+  // Tokenize the user's query
+  // const tokens = await tokenizeText(query)
+
+  const encoded = encode(query)
+  console.log('Encoded this string looks like: ', encoded)
+
+  const decodetheData = decode(encoded)
+  console.log('decodetheData encoded: ', decodetheData)
+
+  // console.log('Response', response.data)
+
+  // Find the context documents that are most relevant to the query
+  const emb1 = [encoded]
+  const emb2 = [embeddings[0]]
+  console.log(`Similarity between "${encoded}" and "${emb2}"`)
+  const embded = [...embeddings]
+  const relevantDocuments = embded
+    .map(async (embedding, i) => {
+      const response = await openai.createCompletion({
+        engine: 'text-davinci-002',
+        prompt: `Similarity between "${encoded}" and "${embedding}":`,
+        max_tokens: 300,
+        n: 1,
+        stop: '\n',
+        temperature: 0,
+      })
+
+      console.log('Check my response', response.data)
+
+      const data = {
+        //tokens, embedding,
+        index: i,
+        similarity: response,
+      }
+
+      return parseFloat(response.choices[0].text)
+    })
+    .sort((a, b) => b.similarity - a.similarity)
+    .map((item) => item.index)
+
+  // Extract the text of the relevant documents
+  console.log('relavantDoucmentats', relevantDocuments)
+  console.log('embedding', embeddings)
+
+  console.log('DF', df)
+
+  const contextText = relevantDocuments.map((res, index) => {
+    return df[index].content
+  })
+  // // Flatten and join the context text into a single string
+  const contextString = flattenDeep(contextText).join(' ')
+  // // Construct the prompt by concatenating the query and the relevant context text
+  const prompt = `${query}\n\n${contextString}\n`
+  return prompt
+}
+
+// Define a function to answer a user's question based on the context
+const answerQuestionWithContext = async (query, embeddings, data) => {
+  // Construct the prompt for the user's query
+  const prompt = await constructPrompt(query, embeddings, data)
+
+  // Call the OpenAI API to generate a response based on the prompt
+  const response = await openai.createCompletion({
+    model: 'text-davinci-003',
+    prompt: `${prompt} ?`,
+    temperature: 0.6,
+    max_tokens: 60,
+    n: 1,
+    stop: ['\n'],
+  })
+
+  console.log('***********************', response.choices[0].text.trim())
+
+  // Return the generated response
+  return response.choices[0].text.trim()
 }
