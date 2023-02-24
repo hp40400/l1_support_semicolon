@@ -212,7 +212,7 @@ exports.submitClarificationFeedback = async (req, res) => {
       },
     })
 
-    res.status(410).json({
+    res.status(200).json({
       status: 'success',
       message: 'Thank you for your feedback',
     })
