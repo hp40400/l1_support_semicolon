@@ -38,14 +38,23 @@ exports.getAnswareFromPromptModel = async (req, res) => {
     P:`
 
   try {
-    const response = await openai.createCompletion({
-      model: 'text-davinci-003',
-      prompt: `${promptContext} ${data.queryPrompt} ?`,
+    // const response = await openai.createCompletion({
+    //   model: 'text-davinci-003',
+    //   prompt: `${promptContext} ${data.queryPrompt} ?`,
+    //   temperature: 0.6,
+    //   max_tokens: 60,
+    // })
+
+    //davinci:ft-personal-2023-02-24-06-30-47
+    const newFineTuneModel = await openai.createCompletion({
+      model: 'davinci:ft-personal-2023-02-24-06-30-47',
+      prompt: `${data.queryPrompt} ?`,
       temperature: 0.6,
-      max_tokens: 60,
+      max_tokens: 100,
+      stop: ['END'],
     })
-    console.log(response.data)
-    return res.json(response.data)
+    console.log(newFineTuneModel.data?.choices[0].text.trim())
+    return res.json(newFineTuneModel.data?.choices[0].text.trim())
   } catch (error) {
     console.log(error)
     res.status(404).json({
