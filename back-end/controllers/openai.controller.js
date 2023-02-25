@@ -53,12 +53,13 @@ exports.getAnswareFromFineTuneModel = async (req, res) => {
   try {
     const data = req.body
     const response = await openai.createCompletion({
-      model: 'davinci:ft-personal-2023-02-22-11-40-01',
+      model: 'davinci:ft-personal-2023-02-24-06-30-47',
       prompt: `${data.queryPrompt} ?`,
       temperature: 0.6,
-      max_tokens: 60,
+      max_tokens: 100,
+      stop: ['END'],
     })
-    console.log(response.data)
+    console.log(response.data.choices[0].text?.trim())
     res.json(response.data)
   } catch (error) {
     console.log(error)

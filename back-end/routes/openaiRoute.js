@@ -5,6 +5,10 @@ const router = express.Router()
 const openAIController = require('../controllers/openai.controller')
 
 router.route('/').post(openAIController.getAnswareFromPromptModel)
+router
+  .route('/get-anware-from-fine-tune')
+  .post(openAIController.getAnswareFromFineTuneModel)
+
 router.route('/getAllModelList').get(openAIController.getListOfModels)
 router.route('/getAllFineTunes').get(openAIController.getListOfFineTunes)
 router
