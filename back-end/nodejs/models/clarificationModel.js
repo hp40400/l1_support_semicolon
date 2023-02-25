@@ -8,6 +8,9 @@ const clarificationSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Clarification Title is must'],
   },
+  indexingKeywords: [{
+    type: String
+  }],
   conversations: [{}],
   feedback: {
     is_satisfied: { type: Boolean },
