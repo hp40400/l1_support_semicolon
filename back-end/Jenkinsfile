@@ -9,6 +9,9 @@ pipeline {
     agent any
     stages {
         stage('build') {
+            when {
+                branch 'main'
+            }
             steps {
                  dir('back-end') {                     
                 sh '''
