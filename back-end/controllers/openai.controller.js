@@ -56,7 +56,7 @@ exports.getAnswareFromFineTuneModel = async (req, res) => {
       model: 'davinci:ft-personal-2023-02-24-06-30-47',
       prompt: `${data.queryPrompt} ?`,
       temperature: 0.6,
-      max_tokens: 100,
+      max_tokens: 70,
       stop: ['END'],
     })
     console.log(response.data.choices[0].text?.trim())

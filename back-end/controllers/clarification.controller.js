@@ -230,7 +230,7 @@ async function getAnswareFromFineTuneModel(queryPrompt) {
       model: 'davinci:ft-personal-2023-02-24-06-30-47',
       prompt: `${queryPrompt} ?`,
       temperature: 0.6,
-      max_tokens: 100,
+      max_tokens: 70,
       stop: ['END'],
     })
 
