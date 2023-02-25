@@ -36,9 +36,9 @@ export class UtilityService {
             });
     }
 
-    getSelectedClarificationData(clarificationId) {
+    async getSelectedClarificationData(clarificationId) {
         let conversationArray = [];
-        this.clarificationService.getSelectedClarification(clarificationId)
+        await this.clarificationService.getSelectedClarification(clarificationId)
             .then((res) => {
                 if (res?.status === 'success') {
                     conversationArray = res?.data?.clarificationData?.conversations;
@@ -49,8 +49,8 @@ export class UtilityService {
             });
     }
 
-    editExistingclarificationData(clarificationId: string, title: string) {
-        this.clarificationService.updateClarificationTitle(clarificationId, title)
+    async editExistingclarificationData(clarificationId: string, title: string) {
+        await this.clarificationService.updateClarificationTitle(clarificationId, title)
             .then((res) => {
                 this.notifyService.showSuccess("Clarification title modified successfully !!",
                     "Notification");
@@ -65,8 +65,8 @@ export class UtilityService {
             });
     }
 
-    deleteExistingclarificationData(clarificationId: string) {
-        this.clarificationService.deleteClarification(clarificationId)
+    async deleteExistingclarificationData(clarificationId: string) {
+        await this.clarificationService.deleteClarification(clarificationId)
             .then((res) => {
                 this.notifyService.showSuccess("Clarification Deleted successfully !!",
                     "Notification");
@@ -81,8 +81,8 @@ export class UtilityService {
             });
     }
 
-    sendFeedback(clarificationId: string, feedback: Feedback) {
-        this.clarificationService.addFeedback(clarificationId, feedback)
+    async sendFeedback(clarificationId: string, feedback: Feedback) {
+        await this.clarificationService.addFeedback(clarificationId, feedback)
             .then((res) => {
                 console.log(res);
                 if (res?.status === 'success' && res?.message) {
@@ -91,6 +91,7 @@ export class UtilityService {
                 }
                 this.notifyService.showSuccess("Feedback added successfully !!",
                     "Notification");
+                location.reload();
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while sending the Feedback!!",

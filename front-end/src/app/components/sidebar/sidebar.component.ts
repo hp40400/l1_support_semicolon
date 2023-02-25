@@ -86,13 +86,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.isDeleteEnable = false;
   }
 
-  addNewClarificationToTheList() {
+  async addNewClarificationToTheList() {
     const newClarificationObj = { title: "New Clarification" };
     this.menuItemTitle = 'New Clarification';
     this.sharingService.setClarificationTitle(this.menuItemTitle);
     let clarificationId = '';
     this.sharingService.setSelectedClarificationArray([]);
-    this.clarificationService.createNewClarification(newClarificationObj)
+    await this.clarificationService.createNewClarification(newClarificationObj)
       .then((res) => {
         if (res?.status === "success" && res?.data?.newClarification) {
           clarificationId = res.data.newClarification['_id'];
@@ -147,14 +147,24 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   async editExistingClarificationTitle(clarificationId: string, title: string) {
     const editedTitle = title === ''? 'New Clarification': title;
-    this.utilityService.editExistingclarificationData(clarificationId, editedTitle);
-    await this.getMenuItem();
+    try {
+      await this.utilityService.editExistingclarificationData(clarificationId, editedTitle);
+      await this.getMenuItem();
+    }
+    catch (err) {
+      console.log(err)
+    }
     this.isEditEnable = false;
   }
 
   async deleteExistingClarification(clarificationId: string) {
-    this.utilityService.deleteExistingclarificationData(clarificationId);
-    await this.getMenuItem();
+    try {
+      await this.utilityService.deleteExistingclarificationData(clarificationId);
+      await this.getMenuItem();
+    }
+    catch (err) {
+      console.log(err)
+    }
     this.isDeleteEnable = false;
   }
 
