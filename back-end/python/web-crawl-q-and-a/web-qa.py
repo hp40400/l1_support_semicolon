@@ -42,13 +42,8 @@ disable_warnings(InsecureRequestWarning)
 
 
 
-
-
-
 #Openai API Key
-# openai.api_key = "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"
-openai.api_key = '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'
-
+openai.api_key = os.environ["OPENAI_API_KEY"]
 ##############-Crawl Webpage and Creat Embedding-###################
 
 # # Regex pattern to match a URL

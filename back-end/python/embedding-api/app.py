@@ -1,4 +1,6 @@
 import os
+from sqlite3 import Date
+from this import d
 from fastapi import FastAPI, Body, HTTPException, status
 from fastapi.responses import Response, JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -31,26 +33,17 @@ from tenacity import (
 )  # for exponential backoff
 import time
 import pymongo
+from bson.objectid import ObjectId
+from bson import json_util
+
 
 app = FastAPI()
 uri = 'mongodb+srv://raheemmohamed:LlIjbnwkc7B25iKA@cluster0.xmv93el.mongodb.net/semicolon2023?retryWrites=true'
-openai.api_key = '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'
-
+openai.api_key = os.environ["OPENAI_API_KEY"]
 # # Replace "my_mongodb_uri" with the URI of your MongoDB instance
 client = pymongo.MongoClient(uri)
 db = client["semicolon2023"]        
-clarification = {"title": "My first blog post", "content": "Hello, world!"}
-
 clarifications_collection = db["clarifications"]
-
-@app.post("/", response_description="Add new clarification")
-# async def create_clarification(clarification: Clarification = Body(...)):
-async def create_clarification():
-
-    clarifications_collection.insert_one(clarification)
-    return JSONResponse(status_code=status.HTTP_201_CREATED)
-    # return JSONResponse(status_code=status.HTTP_201_CREATED, content=clarification_obj)
-
 
 @app.get("/")
 def read_root():
@@ -59,13 +52,26 @@ def read_root():
 
 @app.post("/api/clarification/{clarificationId}")
 async def get_embedded_prompt(clarificationId: str, question: str):
-    # ans = "Heelo"
-    # return {"id": clarificationId, "question": question}
+    document_id = ObjectId(clarificationId)
+    document = clarifications_collection.find_one({"_id": document_id})
+    conversations = document["conversations"] # get all the existing conversations
     df=pd.read_csv('processed/embeddings.csv', index_col=0)
     df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
     df.head()
-    return answer_question(df, question=question, debug=False) 
+    answer = answer_question(df, question=question, debug=False) 
+    # answer = "bla bla bla bla"
+    new_conversation = {'request': question, "response": answer, "timestamp": current_milli_time()}
+    conversations.append(new_conversation)
+    print("before setting conversation after api call")
+    # document["conversations"] = conversations
+    update = {"$set": {"conversations": conversations}}
+    clarifications_collection.update_one({"_id": document_id}, update)
+    print("after updating the document")
+    return {"status": "success", "data": new_conversation}
+
+def current_milli_time():
+    return round(time.time() * 1000)
 
 def create_context(
     question, df, max_len=1800, size="ada"
