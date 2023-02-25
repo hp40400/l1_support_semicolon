@@ -38,4 +38,8 @@ router
   .route('/cancelFineTuneByJobId')
   .post(openAIController.cancelFineTuneByJobId)
 
+router
+  .route('/generate-csv-to-jsonl')
+  .get(openAIController.createJsonLBasedOnCSV)
+
 module.exports = router

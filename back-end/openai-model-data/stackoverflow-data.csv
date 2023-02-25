@@ -1,0 +1,2800 @@
+QuestionId,QuestionTitle,QuestionBody,AcceptedAnswerId,AcceptedAnswerBody
+28658735,What are Keycloak's OAuth2 / OpenID Connect endpoints?,"We are trying to evaluate Keycloak as an SSO solution, and it looks good in many respects, but the documentation is painfully lacking in the basics.
+
+For a given Keycloak installation on `http://localhost:8080/` for realm `test`, what are the [OAuth2 Authorization Endpoint](https://www.rfc-editor.org/rfc/rfc6749#section-3.1), [OAuth2 Token Endpoint](https://www.rfc-editor.org/rfc/rfc6749#section-3.2) and [OpenID Connect UserInfo Endpoint](http://openid.net/specs/openid-connect-core-1_0.html#UserInfo) ?
+
+We are not interested in using Keycloak's own client library, we want to use standard OAuth2 / OpenID Connect client libraries, as the client applications using the keycloak server will be written in a wide range of languages (PHP, Ruby, Node, Java, C#, Angular). Therefore the examples that use the Keycloak client aren't of use for us.",30449500,"For Keycloak 1.2 the above information can be retrieved via the url
+
+    
+```
+http://keycloakhost:keycloakport/auth/realms/{realm}/.well-known/openid-configuration
+```
+
+For example, if the realm name is _demo_:
+
+```
+http://keycloakhost:keycloakport/auth/realms/demo/.well-known/openid-configuration
+```
+
+An example output from above url:
+
+```json
+{
+    ""issuer"": ""http://localhost:8080/auth/realms/demo"",
+    ""authorization_endpoint"": ""http://localhost:8080/auth/realms/demo/protocol/openid-connect/auth"",
+    ""token_endpoint"": ""http://localhost:8080/auth/realms/demo/protocol/openid-connect/token"",
+    ""userinfo_endpoint"": ""http://localhost:8080/auth/realms/demo/protocol/openid-connect/userinfo"",
+    ""end_session_endpoint"": ""http://localhost:8080/auth/realms/demo/protocol/openid-connect/logout"",
+    ""jwks_uri"": ""http://localhost:8080/auth/realms/demo/protocol/openid-connect/certs"",
+    ""grant_types_supported"": [
+        ""authorization_code"",
+        ""refresh_token"",
+        ""password""
+    ],
+    ""response_types_supported"": [
+        ""code""
+    ],
+    ""subject_types_supported"": [
+        ""public""
+    ],
+    ""id_token_signing_alg_values_supported"": [
+        ""RS256""
+    ],
+    ""response_modes_supported"": [
+        ""query""
+    ]
+}
+```
+
+Found information at https://issues.jboss.org/browse/KEYCLOAK-571
+
+Note: You might need to add your client to the _Valid Redirect URI_ list"
+42186537,"Resources, scopes, permissions and policies in keycloak","I want to create a fairly simple role-based access control system using Keycloak's authorizaion system. The system Keycloak is replacing allows us to create a ""user"", who is a member of one or more ""groups"". In this legacy system, a user is given ""permission"" to access each of about 250 ""capabilities"" either through group membership (where groups are assigned permissions) or a direct grant of a permission to the user.
+
+I would like to map the legacy system to keycloak authorizations.
+
+It should be simple for me to map each ""capability"" in the existing system to a keycloak resource and a set of keycloak scopes. For example, a ""viewAccount"" capability would obviously map to an ""account"" resource and a ""view"" scope; and ""viewTransaction"" maps to a ""transaction"" resource... but is it best practice to create just one ""view"" scope, and use it across multiple resources (account, transaction, etc)? Or should I create a ""viewAccount"" scope, a ""viewTransaction"" scope, etc?
+
+Similarly, I'm a little confused about permissions. For each practical combination of resource and scope, is it usual practice to create a permission? If there are multiple permissions matching a given resource/scope, what does Keycloak do? I'm guessing that the intention of Keycloak is to allow me to configure a matrix of permissions against resources and scopes, so for example I could have permission to access ""accounts"" and permission for ""view"" scope, so therefore I would have permission to view accounts?
+
+I ask because the result of all this seems to be that my old ""viewAccount"" capability ends up creating an ""Account"" resource, with ""View"" scope, and a ""viewAccount"" permission, which seems to get me back where I was. Which is fine, if it's correct.
+
+Finally, obviously I need a set of policies that determine if viewAccount should be applied. But am I right that this means I need a policy for each of the legacy groups that a user could belong to? For example, if I have a ""helpdesk"" role, then I need a ""helpdesk membership"" policy, which I could then add to the ""viewAccount"" permission. Is this correct?
+
+Thanks,
+
+Mark",58906945,"Full transparency- I am by no means a Keycloak/OAuth/OIDC expert and what I know is mostly from reading the docs, books, good ol' YouTube and playing around with the tool. 
+
+This post will be comprised of two parts: 
+
+1. I'll attempt to answer all your questions to the best of my ability 
+2. I'll show you all how you can play around with policies/scopes/permissions in Keycloak without needing to deploy a separate app in order to better understand some of the core concepts in this thread. Do note though that this is mostly meant to get you all started. I'm using `Keycloak 8.0.0`.
+
+# Part I
+
+Some terminology before we get started: 
+
+* In Keycloak, you can create 2 types of permissions: [Resource-Based](https://www.keycloak.org/docs/latest/authorization_services/#_permission_create_resource) and [Scope-Based](https://www.keycloak.org/docs/latest/authorization_services/#_permission_create_scope).
+* Simply put, for `Resource-Based` permissions, you apply it directly to your resource 
+* For `Scoped-Based` permission, you apply it to your scope(s) or scope(s) **and** resource. 
+
+> is it best practice to create just one ""view"" scope, and use it across multiple resources (account, transaction, etc)? Or should I create a ""viewAccount"" scope, a ""viewTransaction"" scope, etc?
+
+Scopes represent a set of rights at a protected resource. In your case, you have 2 resources: `account` and `transaction`, so I would lean towards the second approach. 
+
+In the long run, having a global `view` scope associated with all your resources (e.g. `account`, `transaction`, `customer`, `settlement`...) makes authorization difficult to both manage and adapt to security requirement changes. 
+
+Here are a few examples that you can check out to get a feel for design
+
+* [Slack API](https://api.slack.com/docs/oauth-scopes)
+* [Box API](https://developer.box.com/en/guides/api-calls/permissions-and-errors/scopes/)
+* [Stripe](https://stripe.com/docs/connect/oauth-reference) 
+
+Do note though - I am not claiming that you shouldn't share scopes across resources. Matter of fact, `Keycloak` allows this for resources with the same `type`. You could for instance need both `viewAccount` and `viewTransaction` scope to read a transaction under a given account (after all you might need access to the account to view transactions). Your requirements and standards will heavily influence your design. 
+
+> For each practical combination of resource and scope, is it usual practice to create a permission?
+
+Apologies, I don't fully understand the question so I'll be a bit broad. In order to grant/deny access to a `resource`, you need to: 
+
+* Define your [policies](https://www.keycloak.org/docs/latest/authorization_services/index.html#_policy_overview) 
+* Define your [permissions](https://www.keycloak.org/docs/latest/authorization_services/index.html#_permission_overview)
+* Apply your policies to your permissions
+* Associate your permissions to a `scope` or `resource` (or both)
+
+for policy enforcement to take effect. See [Authorization Process](https://www.keycloak.org/docs/latest/authorization_services/index.html#the-authorization-process). 
+
+How you go about setting all this up is entirely up to you. You could for instance: 
+
+ * Define individual policies, and tie each policy under the appropriate permission.
+ 
+ * Better yet, define individual policies, then group all your related policies under an `aggregated` policy (a policy of policies) and then associate that aggregated policy with the `scope-based` permission. You could have that `scoped-based` permission apply to both the resource and all its associated scope.
+
+ * Or, you could further break apart your permissions by leveraging the two separate types. You could create permissions solely for your resources via the `resource-based` permission type, and separately associate other permissions solely with a scope via the `scope-based` permission type. 
+
+You have options.  
+
+>  If there are multiple permissions matching a given resource/scope, what does Keycloak do? 
+
+This depends on 
+
+1. The resource server's  `Decision Strategy`
+2. Each permission's `Decision Strategy`
+3. Each policy's `Logic` value. 
+
+The `Logic` value is similar with Java's `!` operator. It can either be `Positive` or `Negative`. When the `Logic` is `Positive`, the policy's final evaluation remains unchanged. When its `Negative`, the final result is negated (e.g. if a policy evaluates to false and its `Logic` is `Negative`, then it will be `true`). To keep things simple, let's assume that the `Logic` is always set to `Positive`. 
+
+The `Decision Strategy` is what we really want to tackle. The `Decision Strategy` can either be `Unanimous` or `Affirmative`. From the docs, 
+
+> **Decision Strategy**
+
+> This configurations changes how the policy evaluation engine decides whether or not a resource or scope should be granted based on the outcome from all evaluated permissions. **Affirmative** means that at least one permission must evaluate to a positive decision in order grant access to a resource and its scopes. **Unanimous** means that all permissions must evaluate to a positive decision in order for the final decision to be also positive. As an example, if two permissions for a same resource or scope are in conflict (one of them is granting access and the other is denying access), the permission to the resource or scope will be granted if the chosen strategy is Affirmative. Otherwise, a single deny from any permission will also deny access to the resource or scope.
+
+Let's use an example to better understand the above. Suppose you have a resource with 2 permissions and someone is trying to access that resource (remember, the `Logic` is `Positive` for all policies). Now: 
+
+1. `Permission One` has a `Decision Strategy` set to `Affirmative`. It also has 3 policies where they each evaluate to: 
+  * `true` 
+  * `false` 
+  * `false` 
+
+Since one of the policies is set to `true`, `Permission One` is set to `true` (Affirmative - only 1 needs to be `true`).
+ 
+2. `Permission Two` has a `Decision Strategy` set to `Unanimous` with 2 policies: 
+  * `true` 
+  * `false` 
+
+In this case `Permission Two` is `false` since one policy is false (Unanimous - they all need to be `true`). 
+
+3. Now comes the **final** evaluation. If the resource server's `Decision Strategy` is set to `Affirmative`, access to that resource would be granted because `Permission One` is `true`. If on the other hand, the resource server's `Decision Strategy` is set to `Unanimous`, access would be denied.
+
+See: 
+
+* [Resource Server Settings](https://www.keycloak.org/docs/latest/authorization_services/index.html#resource_server_settings)
+* [Managing Permissions](https://www.keycloak.org/docs/latest/authorization_services/index.html#_permission_overview) 
+
+We'll keep revisiting this. I explain how to set the resource sever's `Decision Strategy`  in Part II. 
+
+> so for example I could have permission to access ""accounts"" and permission for ""view"" scope, so therefore I would have permission to view accounts? 
+
+The short answer is yes. Now, let's expand on this a bit :)
+
+If you have the following scenario: 
+
+ 1. Resource server's `Decision Strategy` set to `Unanimous` or `Affirmative` 
+ 2. Permission to access the `account/{id}` resource is `true` 
+ 3. Permission to access the `view` scope is `true`
+
+You will be granted access to view the account. 
+ 
+ * `true` + `true` is equal to `true` under the `Affirmative` or `Unanimous` `Decision Strategy`.  
+
+Now if you have this 
+
+ 1. Resource server's `Decision Strategy` set to `Affirmative` 
+ 2. Permission to access the `account/{id}` resource is `true`
+ 3. Permission to access the `view` scope is `false` 
+
+You will *also* be granted access to view the account. 
+
+ * `true` + `false` is `true` under the `Affirmative` strategy. 
+
+The point here is that access to a given resource also depends on your setup so be careful as you may not want the second scenario. 
+
+> But am I right that this means I need a policy for each of the legacy groups that a user could belong to?  
+
+I'm not sure how Keycloak behaved 2 years ago, but you can specify a [Group-Based policy](https://www.keycloak.org/docs/latest/authorization_services/#_policy_group) and simply add all your groups under that policy. You certainly do not need to create one policy per group. 
+
+> For example, if I have a ""helpdesk"" role, then I need a ""helpdesk membership"" policy, which I could then add to the ""viewAccount"" permission. Is this correct?
+
+Pretty much. There are many ways you can set this up. For instance, you can: 
+
+1. Create your resource (e.g. `/account/{id}`) and associate it with the `account:view` scope. 
+2. create a [Role-Based Policy](https://www.keycloak.org/docs/latest/authorization_services/#_policy_rbac) and add the `helpdesk` role under that policy 
+3. Create a `Scope-Based` permission called `viewAccount` and tie it with `scope`, `resource` and `policy`
+
+We'll set up something similar in Part II. 
+
+# Part II 
+
+Keycloak has a neat little tool which allows you test all your policies. Better yet, you actually do not need to spin up another application server and deploy a separate app for this to work.  
+
+Here's the scenario that we'll set up: 
+
+ 1. We'll create a new realm called `stackoverflow-demo`
+ 2. We'll create a `bank-api` client under that realm 
+ 3. We will define a resource called `/account/{id}` for that client 
+ 4. The `account/{id}` will have the `account:view` scope
+ 5. We'll create a user called `bob` under the new realm 
+ 6. We'll also create three roles: `bank_teller`, `account_owner` and `user` 
+   * We will not associate `bob` with any roles. This is not needed right now. 
+ 7. We'll set up the following two `Role-Based` policies: 
+   * `bank_teller` and `account_owner` have access to the `/account/{id}` resource 
+   * `account_owner` has access to the `account:view` scope 
+   *  `user` does not have access to the resource or scope
+ 8. We'll play around with the `Evaluate` tool to see how access can be granted or 
+    denied. 
+
+Do forgive me, this example is unrealistic but I'm not familiar with the banking sector :) 
+
+
+## Keycloak setup 
+
+### Download and run Keycloak 
+```
+cd tmp
+wget https://downloads.jboss.org/keycloak/8.0.0/keycloak-8.0.0.zip 
+unzip keycloak-8.0.0.zip
+cd keycloak-8.0.0/bin
+./standalone.sh 
+```
+
+### Create initial admin user 
+1. Go to ` http://localhost:8080/auth`
+2. Click on the `Administration Console` link  
+3. Create the admin user and login 
+
+Visit [Getting Started](https://www.keycloak.org/docs/latest/getting_started/) for more information. For our purposes, the above is enough. 
+
+## Setting up the stage 
+
+### Create a new realm 
+1. Hover your mouse around the `master` realm and click on the `Add Realm` button.
+2. Enter `stackoverflow-demo` as the name. 
+3. Click on `Create`. 
+4. The top left should now say `stackoverflow-demo` instead of the `master` realm. 
+
+See [Creating a New Realm](https://www.keycloak.org/docs/latest/getting_started/index.html#_create-realm) 
+
+### Create a new user 
+1. Click on the `Users` link on the left
+2. Click on the `Add User` button 
+3. Enter the `username` (e.g. `bob`) 
+4. Ensure that `User Enabled` is turned on 
+5. Click `Save` 
+
+See [Creating a New User](https://www.keycloak.org/docs/latest/getting_started/index.html#_create-new-user)
+
+### Create new roles 
+1. Click on the `Roles` link 
+2. Click on `Add Role` 
+3. Add the following roles: `bank_teller`, `account_owner` and `user`
+
+Again, do **not** associate your user with the roles. For our purposes, this is not needed. 
+
+See [Roles](https://www.keycloak.org/docs/latest/server_admin/#roles)
+
+### Create a client 
+1. Click on the `Clients` link 
+2. Click on `Create`
+3. Enter `bank-api` for the `Client ID` 
+4. For the `Root URL` enter `http://127.0.0.1:8080/bank-api`
+5. Click on `Save` 
+6. Ensure that `Client Protocol` is `openid-connect` 
+7. Change the `Access Type` to `confidential` 
+8. Change `Authorization Enabled` to `On`
+9. Scroll down and hit `Save`. A new `Authorization` tab should appear at the top. 
+10. Click on the `Authorization` tab and then `Settings` 
+11. Ensure that the `Decision Strategy` is set to `Unanimous` 
+   * This is the resource server's `Decision Strategy`
+
+See:
+
+ * [Creating a Client Application](https://www.keycloak.org/docs/latest/authorization_services/#_resource_server_create_client)
+ * [Enabling Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/#_resource_server_enable_authorization)
+
+### Create Custom Scopes
+1. Click on the `Authorization` tab 
+2. Click on `Authorization Scopes` > `Create` to bring up `Add Scope` page 
+3. Enter `account:view` in the name and hit enter. 
+
+### Create ""View Account Resource"" 
+1. Click on `Authorization` link above 
+2. Click on `Resources`
+3. Click on `Create` 
+4. Enter `View Account Resource` for both the `Name` and `Display name` 
+5. Enter `account/{id}` for the `URI` 
+6. Enter `account:view` in the `Scopes` textbox
+7. Click `Save`
+
+See [Creating Resources](https://www.keycloak.org/docs/latest/authorization_services/#_resource_create)
+ 
+### Create your policies 
+1. Again under the `Authorization` tab, click on `Policies` 
+2. Select `Role` from the the `Create Policy` dropdown 
+3. In the `Name` section, type `Only Bank Teller and Account Owner Policy` 
+4. Under `Realm Roles` select both the `bank_teller` and `account_owner` role
+5. Ensure that `Logic` is set to `Positive` 
+5. Click `Save` 
+6. Click on the `Policies` link  
+7. Select `Role` again from the `Create Policy` dropdown. 
+8. This time use `Only Account Owner Policy` for the `Name` 
+9. Under `Realm Roles` select `account_owner`
+10. Ensure that `Logic` is set to `Positive`
+11. Click `Save` 
+12. Click on the `Policies` link at the top, you should now see your newly created policies. 
+
+See [Role-Based Policy](https://www.keycloak.org/docs/latest/authorization_services/#_policy_rbac) 
+
+Do note that Keycloak has much more powerful policies. See [Managing Policies](https://www.keycloak.org/docs/latest/authorization_services/#_policy_overview)
+
+### Create Resource-Based Permission
+1. Again under the `Authorization` tab, click on `Permissions`
+2. Select `Resource-Based` 
+3. Type `View Account Resource Permission` for the `Name` 
+4. Under `Resources` type `View Account Resource Permission` 
+5. Under `Apply Policy` select `Only Bank Teller and Account Owner Policy` 
+6. Ensure that the `Decision Strategy` is set to `Unanimous`
+7. Click `Save` 
+
+See [Create Resource-Based Permissions](https://www.keycloak.org/docs/latest/authorization_services/#_permission_create_resource) 
+
+*Phew...* 
+
+### Evaluating the Resource-Based permission 
+1. Again under the `Authorization` tab, select `Evaluate` 
+2. Under `User` enter `bob`  
+3. Under `Roles` select `user` 
+   * This is where we will associate our user with our created roles. 
+4. Under `Resources` select `View Account Resource` and click `Add` 
+5. Click on Evaluate. 
+6. Expand the `View Account Resource with scopes [account:view]` to see the results and you should see `DENY`. 
+
+[![enter image description here][1]][1]
+
+
+7. This makes sense because we only allow two roles access to that resource via the `Only Bank Teller and Account Owner Policy`. Let's test this to make sure this is true! 
+8. Click on the `Back` link right above the evaluation result 
+9. Change bob's role to `account_owner` and click on `Evaluate`. You should now see the result as `PERMIT`. Same deal if you go back and change the role to `bank_teller` 
+
+See [Evaluating and Testing Policies](https://www.keycloak.org/docs/latest/authorization_services/#_policy_evaluation_overview)
+
+### Create Scope-Based Permission 
+1. Go back to the `Permissions` section 
+2. Select `Scope-Based` this time under the `Create Permission` dropdown. 
+3. Under `Name`, enter `View Account Scope Permission` 
+4. Under `Scopes`, enter `account:view` 
+5. Under `Apply Policy`, enter `Only Account Owner Policy` 
+6. Ensure that the `Decision Strategy` is set to `Unanimous`
+7. Click `Save`
+
+See [Creating Scope-Based Permissions](https://www.keycloak.org/docs/latest/authorization_services/index.html#_permission_create_scope) 
+
+Second test run 
+
+### Evaluating our new changes 
+1. Go back to the `Authorization` section 
+2. Click on `Evaluate`
+3. User should be `bob` 
+4. Roles should be `bank_teller` 
+5. Resources should be `View Account Resource` and click `Add` 
+6. Click on `Evaluate` and we should get `DENY`. 
+    * Again this should come as no surprise as the `bank_teller` has access to the `resource` but not the `scope`. Here one permission evaluates to true, and the other to false. Given that the resource server's `Decision Strategy` is set to `Unanimous`, the final decision is `DENY`. 
+7. Click on `Settings` under the `Authorization` tab, and change the `Decision Strategy` to `Affirmative` and go back to steps 1-6 again. This time, the final result should be `PERMIT` (one permission is true, so final decision is true). 
+8. For the sake of completeness, turn the resource server's `Decision Strategy` back to `Unanimous`. Again, go back to steps 1 through 6 but this time, set the role as `account_owner`.  This time, the final result is again `PERMIT` which makes sense, given that the `account_owner` has access to both the `resource` and `scope`.
+
+
+  [1]: https://i.stack.imgur.com/MyKMU.png"
+66662820,M1 docker preview and keycloak 'image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)' Issue,"I just downloaded Docker Preview v3.1 https://docs.docker.com/docker-for-mac/apple-m1/ and tried running keycloak.
+
+Anyone else running into this issue?
+
+```
+docker run -p 8080:8080 -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin quay.io/keycloak/keycloak:12.0.4
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+```",66664440,"Just found this post:
+https://github.com/docker/for-mac/issues/5310#issuecomment-779791882
+
+Using this image, I am now able to startup keycloak.
+https://hub.docker.com/r/wizzn/keycloak"
+44752273,Do Keycloak Clients have a Client Secret?,"Does keycloak client id has a client secret? I tried to create a client in keycloak admin but I was not able to spot client secret.
+
+Is it auto generated? Where can I get the secret?",44753547,"Your client need to have the `access-type` set to `confidential` , then you will have a new tab `credentials` where you will see the client secret.  
+https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/clients/oidc/confidential.html"
+52040265,How to specify refresh tokens lifespan in Keycloak,"Keycloak refresh token lifetime is 1800 seconds:
+
+> ""refresh_expires_in"": 1800 
+
+How to specify different expiration time? In Keycloak admin UI, only access token lifespan can be specified:
+
+[![enter image description here][1]][1]
+
+
+  [1]: https://i.stack.imgur.com/18KSI.png",54679852,The refresh token lifetime is controlled by the SSO Session Idle Setting.  30 minutes = 30 * 60 = 1800 seconds (the refresh_expires_in value)
+53795179,Keycloak Missing form parameter: grant_type,"I have keycloak standalone running on my local machine.
+
+I created new realm called 'spring-test', then new client called 'login-app'
+
+According to the rest documentation:
+
+    POST: http://localhost:8080/auth/realms/spring-test/protocol/openid-connect/token
+    
+    {
+        ""client_id"": ""login-app"",
+        ""username"": ""user123"",
+        ""password"": ""pass123"",
+        ""grant_type"": ""password""
+    }
+
+should give me the jwt token but I get bad request with response
+
+    {
+        ""error"": ""invalid_request"",
+        ""error_description"": ""Missing form parameter: grant_type""
+    }
+
+I am assuming that something is missing in my configuration.
+
+
+EDIT:
+I was using json body but it should be `application/x-www-form-urlencoded`:
+the following body works:
+
+    token_type_hint:access_token&token:{token}&client_id:{client_id}&client_secret:{client_secret}
+
+",53795226,"You should send your data in a POST request with `Content-Type` header value set to `application/x-www-form-urlencoded`, not json."
+51386337,Refresh access_token via refresh_token in Keycloak,"I need to make the user keep login in the system if the user's `access_token` get expired and user want to keep login. How can I get newly updated `access_token` with the use of `refresh_token` on [Keycloak][1]?
+
+I am using [vertx-auth][2] for the auth implementation with [Keycloak][1] on [vert.x][3]. Is it possible to refresh `access_token` with [vertx-auth][2] or [Keycloak][1]'s REST API itself? Or what will be another implementation of this?
+
+
+  [1]: https://www.keycloak.org
+  [2]: https://github.com/vert-x3/vertx-auth
+  [3]: http://vertx.io",51387379,"keycloak has REST API for creating an `access_token` using `refresh_token`. It is a `POST endpoint with application/x-www-form-urlencoded`
+
+Here is how it looks: 
+
+    Method: POST
+    URL: https://keycloak.example.com/auth/realms/myrealm/protocol/openid-connect/token
+    Body type: x-www-form-urlencoded
+    Form fields:	
+    client_id : <my-client-name>
+    grant_type : refresh_token
+    refresh_token: <my-refresh-token>
+
+This will give you new access token using refresh token.
+
+**NOTE:** if your refresh token is expired it will throw 400 exception in that you can make user login again. 
+
+Check out a sample in Postman, you can develop and corresponding API using this.
+
+[![Sample in Postman][1]][1]
+
+
+  
+
+
+  [1]: https://i.stack.imgur.com/3cvvt.png"
+46689034,Logout user via Keycloak REST API doesn't work,"I have issue while calling Keycloak's **logout** endpoint from an (mobile) application. 
+
+This scenario is supported as stated in [its documentation](http://www.keycloak.org/docs/latest/securing_apps/topics/oidc/oidc-generic.html):
+
+> /realms/{realm-name}/protocol/openid-connect/logout
+
+> The logout endpoint logs out the authenticated user.
+
+> The user agent can be redirected to the endpoint, in which case the active user session is logged out. Afterward the user agent is redirected back to the application.
+
+> **The endpoint can also be invoked directly by the application. To invoke this endpoint directly the refresh token needs to be included as well as the credentials required to authenticate the client**.
+
+My request has following format:
+
+    POST http://localhost:8080/auth/realms/<my_realm>/protocol/openid-connect/logout
+    Authorization: Bearer <access_token>
+    Content-Type: application/x-www-form-urlencoded
+    
+    refresh_token=<refresh_token>
+
+but this error always occurs:
+
+    HTTP/1.1 400 Bad Request
+    Connection: keep-alive
+    X-Powered-By: Undertow/1
+    Server: WildFly/10
+    Content-Type: application/json
+    Content-Length: 123
+    Date: Wed, 11 Oct 2017 12:47:08 GMT
+    
+    {
+      ""error"": ""unauthorized_client"",
+      ""error_description"": ""UNKNOWN_CLIENT: Client was not identified by any client authenticator""
+    }
+
+It seems that Keycloak is unable to detect the current client's identity event if I've provided **access_token**. I've the used same **access_token** to access other Keycloak's APIs without any problems, like **userinfo**
+ (*/auth/realms/<my_realm>/protocol/openid-connect/userinfo*). 
+
+My request was based on this [Keycloak's issue][1]. The author of the issue got it worked but it is not my case. 
+
+I'm using Keycloak **3.2.1.Final**.  
+
+
+  [1]: https://issues.jboss.org/browse/KEYCLOAK-2476
+
+Do you have that same problem? Have you got any idea how to solve it?",46769801,"Finally, I've found the solution by looking at the Keycloak's source code: https://github.com/keycloak/keycloak/blob/9cbc335b68718443704854b1e758f8335b06c242/services/src/main/java/org/keycloak/protocol/oidc/endpoints/LogoutEndpoint.java#L169. It says:
+
+> If the client is a public client, then you must include a ""client_id"" form parameter.
+
+So what I was missing is the **client_id** form parameter. My request should have been:
+
+    POST http://localhost:8080/auth/realms/<my_realm>/protocol/openid-connect/logout
+    Authorization: Bearer <access_token>
+    Content-Type: application/x-www-form-urlencoded
+    
+    client_id=<my_client_id>&refresh_token=<refresh_token>
+
+The session should be destroyed correctly."
+32678883,Keycloak retrieve custom attributes to KeycloakPrincipal,"In my rest service i can obtain the principal information after authentication using 
+
+    KeycloakPrincipal kcPrincipal = (KeycloakPrincipal) servletRequest.getUserPrincipal();
+
+statement.
+
+Keycloak principal doesn't contain all the information i need about the authenticated user.
+Is it possible to customize my own principal type?
+On the keycloak-server-end I've developed a user federation provider. I saw that UserModel makes possible to add a set of custom attributes to my user.
+
+Is it possible to insert my custom principal in that code? 
+
+Is it possible to retrieve this attributes from keycloak principal?
+
+What is the way?
+",32890003,"To add custom attributes you need to do three things:
+
+  1. Add attributes to admin console
+  2. Add claim mapping
+  3. Access claims
+
+The first one is explained pretty good here: https://www.keycloak.org/docs/latest/server_admin/index.html#user-attributes
+
+**Add claim mapping:**
+
+  1. Open the admin console of your realm.
+  2. Go to Clients and open your client
+  3. This only works for Settings > Access Type confidential or public (not bearer-only)
+  4. Go to Mappers
+  5. Create a mapping from your attribute to json
+  6. Check ""Add to ID token""
+
+**Access claims:**
+
+	final Principal userPrincipal = httpRequest.getUserPrincipal();
+
+	if (userPrincipal instanceof KeycloakPrincipal) {
+
+		KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) userPrincipal;
+		IDToken token = kp.getKeycloakSecurityContext().getIdToken();
+
+		Map<String, Object> otherClaims = token.getOtherClaims();
+
+		if (otherClaims.containsKey(""YOUR_CLAIM_KEY"")) {
+			yourClaim = String.valueOf(otherClaims.get(""YOUR_CLAIM_KEY""));
+		}
+	} else {
+		throw new RuntimeException(...);
+	}
+
+
+
+I used this for a custom attribute I added with a custom theme."
+47181821,Using Keycloak behind a reverse proxy: Could not open Admin loginpage because mixed Content,"so I have a problem getting keycloak 3.2.1 to work behind kong (0.10.3), a reverse proxy based on nginx. 
+
+Scenario is:
+
+I call keycloak via my gateway-route via `https://{gateway}/auth` and it shows me the entrypoint with keycloak logo, link to admin console etc. - so far so good. 
+
+But when clicking on administration console -> calling `https://{gateway}/auth/admin/master/console/` , keycloak tries to load its css/js via http (see screenie below), which my browser blocks because mixed content.
+
+I searched around and found this thread: https://stackoverflow.com/questions/35169503/keycloak-apache-server-configuration-with-mixed-content-problems which lead to this github repo: https://github.com/dukecon/keycloak_postgres_https
+
+From there on, I tried to integrate its' cli into my dockerfile with success (did not change the files' contents, just copied them into my repo and add/run them from dockerfile). This is my dockerfile right now:
+
+    FROM jboss/keycloak-postgres:3.2.1.Final
+    
+    USER root
+    
+    ADD config.sh /tmp/
+    ADD batch.cli /tmp/
+    
+    RUN bash /tmp/config.sh
+    
+    #Give correct permissions when used in an OpenShift environment.
+    RUN chown -R jboss:0 $JBOSS_HOME/standalone && \
+        chmod -R g+rw $JBOSS_HOME/standalone
+    
+    USER jboss
+    EXPOSE 8080
+
+Sadly, my problem still exists:
+[![error][1]][1]
+
+So I am out of ideas for now and hope you could help me out:
+
+- How do I tell keycloak to call its' css-files via https here? 
+
+- do I have to change something in the cli script? 
+
+Here's the content of the script:
+
+config.sh:
+    
+    #!/bin/bash -x
+    
+    set -e
+    
+    JBOSS_HOME=/opt/jboss/keycloak
+    JBOSS_CLI=$JBOSS_HOME/bin/jboss-cli.sh
+    JBOSS_MODE=${1:-""standalone""}
+    JBOSS_CONFIG=${2:-""$JBOSS_MODE.xml""}
+    
+    echo ""==> Executing...""
+    cd /tmp
+    
+    $JBOSS_CLI --file=`dirname ""$0""`/batch.cli
+    
+    # cf. http://stackoverflow.com/questions/34494022/permissions-error-when-using-cli-in-jboss-wildfly-and-docker
+    /bin/rm -rf ${JBOSS_HOME}/${JBOSS_MODE}/configuration/${JBOSS_MODE}_xml_history/current
+
+and batch.cli:
+
+    embed-server --std-out=echo
+    
+    # http://keycloak.github.io/docs/userguide/keycloak-server/html/server-installation.html
+    # 3.2.7.2. Enable SSL on a Reverse Proxy
+    # First add proxy-address-forwarding and redirect-socket to the http-listener element.
+    # Then add a new socket-binding element to the socket-binding-group element.
+    
+    batch
+    
+    /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=proxy-address-forwarding,value=true)
+    
+    /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=redirect-socket,value=proxy-https)
+    
+    /socket-binding-group=standard-sockets/socket-binding=proxy-https:add(port=443)
+    
+    run-batch
+    
+    stop-embedded-server
+
+
+It may be of interest too, that kong is deployed on openshift with a route using a redirect from http to https ( ""insecureEdgeTerminationPolicy"": ""Redirect"" ).
+
+
+  [1]: https://i.stack.imgur.com/K2qVE.png
+",47187279,"This sounds somehow like a duplicate of https://stackoverflow.com/questions/47068266/keycloak-docker-behind-loadbalancer-with-https-fails
+
+Set the request headers ``X-Forwarded-For`` and ``X-Forwarded-Proto`` in _nginx_. Then you have to configure Keycloak (Wildfly, Undertow) to work together with the SSL terminating reverse proxy (aka load balancer). See http://www.keycloak.org/docs/latest/server_installation/index.html#_setting-up-a-load-balancer-or-proxy for a detailed description.
+
+The point is that _nginx_ is terminating SSL and is forwarding the requests to _Keycloak_ as pure _http_. Therefore _Keycloak/Wildfly_ must be told that the incoming _http_ requests from _nginx_ must be handled like they were _https_."
+53550321,Keycloak-gatekeeper: 'aud' claim and 'client_id' do not match,"What is the correct way to set the `aud` claim to avoid the error below?
+
+    unable to verify the id token	{""error"": ""oidc: JWT claims invalid: invalid claims, 'aud' claim and 'client_id' do not match, aud=account, client_id=webapp""}
+
+I kinda worked around this error message by hardcoding `aud` claim to be the same as my `client_id`. Is there any better way?
+
+Here is my `docker-compose.yml`:
+
+    version: '3'
+    services:
+      keycloak-proxy:
+        image: ""keycloak/keycloak-gatekeeper""
+        environment:
+         - PROXY_LISTEN=0.0.0.0:3000
+         - PROXY_DISCOVERY_URL=http://keycloak.example.com:8181/auth/realms/realmcom
+         - PROXY_CLIENT_ID=webapp
+         - PROXY_CLIENT_SECRET=0b57186c-e939-48ff-aa17-cfd3e361f65e
+         - PROXY_UPSTREAM_URL=http://test-server:8000
+        ports:
+          - ""8282:3000""
+        command:
+          - ""--verbose""
+          - ""--enable-refresh-tokens=true""
+          - ""--enable-default-deny=true""
+          - ""--resources=uri=/*""
+          - ""--enable-session-cookies=true""
+          - ""--encryption-key=AgXa7xRcoClDEU0ZDSH4X0XhL5Qy2Z2j""
+      test-server:
+        image: ""test-server""",53627747,"With recent keycloak version 4.6.0 the client id is apparently no longer automatically added to the audience field 'aud' of the access token. 
+Therefore even though the login succeeds the client rejects the user.
+To fix this you need to configure the audience for your clients (compare doc [2]). 
+## Configure audience in Keycloak
+- Add realm or configure existing
+- Add client my-app or use existing
+- Goto to the newly added ""Client Scopes"" menu [1]
+  - Add Client scope 'good-service' 
+    - Within the settings of the 'good-service' goto Mappers tab
+      - Create Protocol Mapper 'my-app-audience'
+         * Name: my-app-audience
+         * Choose Mapper type: Audience
+         * Included Client Audience: my-app
+         * Add to access token: on
+- Configure client my-app in the ""Clients"" menu
+  - Client Scopes tab in my-app settings
+    - Add available client scopes ""good-service"" to assigned default client scopes
+
+If you have more than one client repeat the steps for the other clients as well and add the good-service scope.
+The intention behind this is to isolate client access. The issued access token will only be valid for the intended audience.
+This is thoroughly described in Keycloak's documentation [1,2].
+
+
+### Links to recent master version of keycloak documentation:
+  - [1] https://github.com/keycloak/keycloak-documentation/blob/master/server_admin/topics/clients/client-scopes.adoc</b>
+  - [2] https://github.com/keycloak/keycloak-documentation/blob/master/server_admin/topics/clients/oidc/audience.adoc
+
+### Links with git tag:
+- [1] https://github.com/keycloak/keycloak-documentation/blob/f490e1fba7445542c2db0b4202647330ddcdae53/server_admin/topics/clients/oidc/audience.adoc
+- [2] https://github.com/keycloak/keycloak-documentation/blob/5e340356e76a8ef917ef3bfc2e548915f527d093/server_admin/topics/clients/client-scopes.adoc
+"
+54884938,Generate JWT Token in Keycloak and get public key to verify the JWT token on a third party platform,"There is an Endpoint to a backend server which gives a JSON response on pinging and is protected by an *Apigee Edge Proxy*. Currently, this endpoint has no security and we want to implement Bearer only token authentication for all the clients making the request. 
+All the clients making the requests to API will send that JWT token in *Authorization Bearer* and Apigee Edge will be used to verify the JWT Token.
+
+How do I use Keycloak to generate this JWT token?
+
+Also, Apigee needs a **public key** of **the origin of the JWT token** (the server which signed the JWT token, in this case, I believe that is Keycloak).
+So my second doubt is, while I use Keycloak to generate the JWT token, how to get the public key using which the server will verify if the token is valid?",55002225,"This got figured out with the help of [this medium article][1]. All the steps I have mentioned below have a detailed description in the article (Refer step 1 to 9 for token part, other steps are related to Spring Boot application) but I would like to give a overview of those in reference to my question.
+
+### Generating a JWT token using KeyCloak
+1. Install and run KeyCloak server and go to the endpoint (e.g http://localhost:8080/auth). Log in with an initial admin login and password (username=admin, password=admin).
+2. Create a Realm and a Client with `openid-connect` as the `Client Protocol`.
+3. Create users, roles and map Client Role To User.
+4. Assuming the server being on `localhost`, visiting the http://localhost:8080/auth/realms/dev/.well-known/openid-configuration gives details about all security endpoints
+5. http://localhost:8080/auth/realms/dev/protocol/openid-connect/token sending a POST request with valid details to this URL gives the JWTtoken with.
+
+### Getting the public key of the KeyCloak server
+* Going to `Realm Settings` and click on `Public key` pops up with the Public key of the server for that Realm. Refer to [this image][2] for better understanding. 
+* Add `-----BEGIN PUBLIC KEY-----` and append `-----END PUBLIC KEY-----` to this copied public key to use it anywhere to verify the JWTtoken. You public key should finally look something like this:
+```
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhAj9OCZd0XjzOIad2VbUPSMoVK1X8hdD2Ad+jUXCzhZJf0RaN6B+79AW5jSgceAgyAtLXiBayLlaqSjZM6oyti9gc2M2BXzoDKLye+Tgpftd72Zreb4HpwKGpVrJ3H3Ip5DNLSD4a1ovAJ6Sahjb8z34T8c1OCnf5j70Y7i9t3y/j076XIUU4vWpAhI9LRAOkSLqDUE5L/ZdPmwTgK91Dy1fxUQ4d02Ly4MTwV2+4OaEHhIfDSvakLBeg4jLGOSxLY0y38DocYzMXe0exJXkLxqHKMznpgGrbps0TPfSK0c3q2PxQLczCD3n63HxbN8U9FPyGeMrz59PPpkwIDAQAB
+-----END PUBLIC KEY-----
+```
+
+### Validating the token on a third party platform
+* [jwt.io][3] is a great website for validating JWTtokens. All 
+we have to do is paste the token and public key. Read the introduction of the website [here][4] to know more about validating the tokens.
+
+
+  [1]: https://medium.com/@bcarunmail/securing-rest-api-using-keycloak-and-spring-oauth2-6ddf3a1efcc2
+  [2]: https://cdn-images-1.medium.com/max/800/1*iNoFToPsy0-rf8uLaqjPjg.png
+  [3]: https://jwt.io/
+  [4]: https://jwt.io/introduction/"
+34410707,Enabling remote access to Keycloak,"I'm using the Keycloak authorization server in order to manage my application permissions. However, I've found out the standalone server can be accessed locally only.
+
+`http://localhost:8080/auth` works, but not it does `http://myhostname:8080/auth`. This issue doesn't permit accessing the server from the internal network.",34410749,"The standalone Keycloak server runs on the top of a JBoss Wildfly instance and this server doesn't allow accessing it externally by default, for security reasons (it should be only for the administration console, but seems to affect every url in case of Keycloak). It has to be booted with the `-b=0.0.0.0` option to enable it.
+
+> However, if your Wildfly is running on a remote machine and you try to
+> access your administrative page through the network by it’s IP address
+> or hostname, let’s say, at http://54.94.240.170:8080/, you will
+> probably see a graceful This webpage is not available error, in
+> another words, Wildfly said “No, thanks, I’m not allowing requests
+> from another guys than the ones at my local machine”.
+
+**See also:**
+
+ - [Enable Wildfly remote access][1]
+ - https://stackoverflow.com/questions/29150643/wildfly-remotely-access-administration-console-doesnt-work
+
+  [1]: http://bgasparotto.com/enable-wildfly-remote-access/"
+44624844,Configure reverse-proxy for Keycloak docker with custom base URL,"How can I set the `docker keycloak base url` as parameter ?
+
+I have the following nginx reverse proxy configuration:
+
+    server {
+        listen 80;
+        server_name example.com;
+
+        location /keycloak {
+            proxy_pass http://example.com:8087/;
+        }
+    }
+
+When I try to access http://example.com/keycloak/ I got a keycloak http redirect to http://example.com/auth/ instead of http://example.com/keycloak/auth/
+
+Any ideas?",44627360,"Just tested that @home, and actually multiple configuration additions are needed:
+
+1/ Run the keycloak container with env **[`-e PROXY_ADDRESS_FORWARDING=true`][1]** as explained in the docs, this is required in a proxy way of accessing to keycloak:
+
+    docker run -it --rm -p 8087:8080 --name keycloak -e PROXY_ADDRESS_FORWARDING=true jboss/keycloak:latest
+
+Also explained in this [SO question][2]
+
+2/ Change the **web-context** inside keycloak's configuration file `$JBOSS_HOME/standalone/configuration/standalone.xml`
+
+Default keycloak configuration points to `auth`
+
+    <web-context>auth</web-context>
+
+Then you could change it to `keycloak/auth`
+
+    <web-context>keycloak/auth</web-context>
+
+If you need to automate this for docker, just create a new keycloak image :
+
+    FROM jboss/keycloak:latest
+
+    USER jboss
+
+    RUN sed -i -e 's/<web-context>auth<\/web-context>/<web-context>keycloak\/auth<\/web-context>/' $JBOSS_HOME/standalone/configuration/standalone.xml
+
+3/ Add some proxy information to nginx configuration (mostly for http / https handling)
+
+    location /keycloak {
+        proxy_pass http://example.com:8087;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+If you are proxying requests from nginx to keycloak on same server, I recommend using `proxy_pass http://localhost:8087;`, and if not try to use a private network to avoid proxying through external web requests.
+
+Hope this helps
+
+  [1]: https://hub.docker.com/r/jboss/keycloak/
+  [2]: https://stackoverflow.com/questions/40388028/configuring-iis-as-reverse-proxy-for-keycloak"
+47837613,How are Keycloak roles managed?,"Keycloak is a great tool, but it lacks proper documentation.
+
+So we have Realm.roles, Client.roles and User.roles
+
+How do there 3 work together when accessing an application using a specific client?
+
+Sincerely,",47857926,"In KeyCloak we have those 3 roles:
+
+ 1. **Realm** **Role**
+ 2. **Client** **Role**
+ 3. **Composite** **Role**
+
+There are no User Roles in KeyCloak. You most likely confused that with User Role Mapping, which is basically mapping a role (realm, client, or composite) to the specific user
+
+In order to find out how these roles actually work, let's first take a look at a simple Realm model I created. As you can see in picture below, every **Realm** has one or multiple **Clients**. And every **Client** can have multiple **Users** attached to it. 
+
+[![enter image description here][1]][1]
+
+Now from this it should be easy to conclude how role mappings work. 
+
+**Realm Role:** It is a global role, belonging to that specific realm. You can access it from any client and map to any user. *Ex Role:* 'Global Admin, Admin'
+
+**Client Role:** It is a role which belongs only to that specific client. You cannot access that role from a different client. You can only map it to the Users from that client. *Ex Roles:* 'Employee, Customer'
+
+**Composite Role:** It is a role that has one or more roles (realm or client ones) associated to it. 
+
+
+
+  [1]: https://i.stack.imgur.com/6ugq3.png"
+53318134,Unable to use Keycloak in Spring Boot 2.1 due to duplicated Bean Registration httpSessionManager,"I want to secure my Spring Boot 2.1 app with Keycloak 4.5.
+
+Currently I cannot start the application due to the following error:
+
+    Exception encountered during context initialization - cancelling refresh attempt: 
+    org.springframework.beans.factory.support.BeanDefinitionOverrideException: 
+      Invalid bean definition with name 'httpSessionManager' defined in class path resource [dummy/service/SecurityConfig.class]: 
+        Cannot register bean definition [Root bean: class [null]; scope=; abstract=false; lazyInit=false; autowireMode=3; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=securityConfig; factoryMethodName=httpSessionManager; initMethodName=null; destroyMethodName=(inferred); defined in class path resource [dummy/SecurityConfig.class]] for bean 'httpSessionManager': 
+    There is already [Generic bean: class [org.keycloak.adapters.springsecurity.management.HttpSessionManager]; scope=singleton; abstract=false; lazyInit=false; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null; defined in URL [jar:file:/.m2/repository/org/keycloak/keycloak-spring-security-adapter/4.5.0.Final/keycloak-spring-security-adapter-4.5.0.Final.jar!/org/keycloak/adapters/springsecurity/management/HttpSessionManager.class]] bound.
+
+My class SecurityConfig (see below) extends from KeycloakWebSecurityConfigurerAdapter. This adapter already defines the bean httpSessionManager.
+
+I understand why this is a problem. Question is, how can I prevent this or fix my conflict? 
+
+The Steps I have done so far:
+
+ - Built my pom (see below) using:
+  - spring-boot-starter-web
+  - spring-boot-starter-security
+  - keycloak-spring-boot-starter
+  - keycloak-adapter-bom in dependencyManagement
+ - Defined an own SecurityConfig extending KeycloakWebSecurityConfigurerAdapter
+
+**pom.xml**
+
+<!-- language: lang-xml -->
+
+    ...
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.1.0.RELEASE</version>
+	</parent>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+		<java.version>11</java.version>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+
+		<keycloak.version>4.5.0.Final</keycloak.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-spring-boot-starter</artifactId>
+		</dependency>
+	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.keycloak.bom</groupId>
+				<artifactId>keycloak-adapter-bom</artifactId>
+				<version>${keycloak.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+    ...
+
+**SecurityConfig.java**
+
+<!-- language: lang-java -->
+
+    @KeycloakConfiguration
+    @EnableGlobalMethodSecurity(prePostEnabled = true)
+    @Import(KeycloakWebSecurityConfigurerAdapter.class)
+    class SecurityConfig extends KeycloakWebSecurityConfigurerAdapter {
+    
+        @Autowired
+        public void configureGlobal(AuthenticationManagerBuilder auth) {
+            KeycloakAuthenticationProvider keycloakAuthenticationProvider = keycloakAuthenticationProvider();
+            keycloakAuthenticationProvider.setGrantedAuthoritiesMapper(new SimpleAuthorityMapper());
+            auth.authenticationProvider(keycloakAuthenticationProvider);
+        }
+
+        @Bean
+        @Override
+        protected SessionAuthenticationStrategy sessionAuthenticationStrategy() {
+            return new RegisterSessionAuthenticationStrategy(new SessionRegistryImpl());
+        }
+
+        @Bean
+        public KeycloakConfigResolver keycloakConfigResolver() {
+            return new KeycloakSpringBootConfigResolver();
+        }
+    
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            super.configure(http);
+            http.csrf().ignoringAntMatchers(""/**/*"");
+            http.authorizeRequests()
+                    .anyRequest().permitAll();
+        }
+    }
+
+
+
+**Update**
+There is a known issue ([KEYCLOAK-8725](https://issues.jboss.org/browse/KEYCLOAK-8725?focusedCommentId=13660313&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-13660313)). The fix is planned for 5.x of Keycloak. However, there was a workaround in the comments. Just replace the annotation @KeyCloakConfiguration with:
+
+
+<!-- language: lang-java -->
+
+    @Configuration
+    @ComponentScan(
+        basePackageClasses = KeycloakSecurityComponents.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = ""org.keycloak.adapters.springsecurity.management.HttpSessionManager""))
+    @EnableWebSecurity",53318548,"It looks like there's a bug in Keycloak's Spring Security integration which means that an application that subclasses `KeycloakWebSecurityConfigurerAdapter` will try to create two beans named `httpSessionManager`. When two beans are defined with the same name, the second definition that is encountered will attempt to override the first. This overriding is prohibited by default in Spring Boot 2.1. I would recommend reporting this as a bug against Keycloak's Spring Security integration. While you are waiting for the bug to be resolved, you can work around the problem by setting `spring.main.allow-bean-definition-overriding=true` in `application.properties`."
+45051923,Keycloak angular No 'Access-Control-Allow-Origin' header is present,"I Have integrated keycloak with an angular app. Basically, both frontend and backend are on different server.Backend app is running on apache tomcat 8. Frontend app is running on JBoss welcome content folder.
+
+**Angular config**
+
+    angular.element(document).ready(function ($http) {
+        var keycloakAuth = new Keycloak('keycloak.json');
+        auth.loggedIn = false;
+        keycloakAuth.init({ onLoad: 'login-required' }).success(function () {
+        	keycloakAuth.loadUserInfo().success(function (userInfo) {
+        		console.log(userInfo);  
+            });
+            auth.loggedIn = true;
+            auth.authz = keycloakAuth;
+            auth.logoutUrl = keycloakAuth.authServerUrl + ""/realms/app1/protocol/openid-connect/logout?redirect_uri=http://35.154.214.8/hrms-keycloak/index.html"";
+            module.factory('Auth', function() {
+                return auth;
+            });
+            angular.bootstrap(document, [""themesApp""]);
+        }).error(function () {
+                window.location.reload();
+            });
+    
+    });
+    module.factory('authInterceptor', function($q, Auth) {
+        return {
+            request: function (config) {
+                var deferred = $q.defer();
+                if (Auth.authz.token) {
+                    Auth.authz.updateToken(5).success(function() {
+                        config.headers = config.headers || {};
+                        config.headers.Authorization = 'Bearer ' + Auth.authz.token;
+                        deferred.resolve(config);
+                    }).error(function() {
+                            deferred.reject('Failed to refresh token');
+                        });
+                }
+                return deferred.promise;
+            }
+        };
+    });
+    module.config([""$httpProvider"", function ($httpProvider)  {
+        $httpProvider.interceptors.push('authInterceptor');
+    }]);
+
+
+
+
+
+**Request Header**
+
+    Accept:*/*
+    Accept-Encoding:gzip, deflate
+    Accept-Language:en-US,en;q=0.8
+    Access-Control-Request-Headers:authorization
+    Access-Control-Request-Method:GET
+    Connection:keep-alive
+    Host:35.154.214.8:8080
+    Origin:http://35.154.214.8
+    Referer:http://35.154.214.8/accounts-keycloak/
+    User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36
+
+**Error on web console.**
+
+    XMLHttpRequest cannot load http://35.154.214.8:8080/company/loadCurrencyList. Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. Origin 'http://35.154.214.8' is therefore not allowed access.
+
+**Cors filter on backend**
+
+    @Component
+    public class CORSFilter implements Filter {
+    	static Logger logger = LoggerFactory.getLogger(CORSFilter.class);
+    
+    	@Override
+    	public void init(FilterConfig filterConfig) throws ServletException {
+    	}
+    
+    	@Override
+    	public void doFilter(ServletRequest request, ServletResponse res,
+    			FilterChain chain) throws IOException, ServletException {
+    		HttpServletResponse response = (HttpServletResponse) res;
+    		response.setHeader(""Access-Control-Allow-Origin"", ""*"");
+    		response.setHeader(""Access-Control-Allow-Methods"", ""*"");
+    		response.setHeader(""Access-Control-Max-Age"", ""3600"");
+    		response.setHeader(""Access-Control-Allow-Headers"", ""*"");
+    		chain.doFilter(request, response);
+    	}
+    
+    	public void destroy() {
+    	}
+    }",45440955,"I was fighting with KeyCloak and CORS and all of this for about two weeks, and this is my solution (for keycloak 3.2.1):
+
+Its all about configuring KeyCloak server.
+It seems to be, that WebOrigin of your Realm needs to be <pre>&#42;</pre>
+Only one origin ""&#42;"".
+
+Thats all, what was needed for me.
+
+If you enter your server as WebOrigin, the trouble begins.
+When you call keycloak.init in JavaScript, keycloak does not generate CORS headers, so you have to configure them manually, and as soon as you do so, and call keycloak.getUserInfo after successful init - you get double CORS headers, which is not allowed.
+
+Somewhere deep inside of keycloak mailing lists is stated, that you need to set enable-cors=true in your keycloak.json, but there is nothing about that on keycloak.gitbooks.io. So it seems not to be true.
+
+They also don't mention CORS when describing JavaScript and Node.Js adapters, and I don't know why, seems not to be important at all.
+
+It also seems to be, that you should not touch WildFly configuration to provide CORS headers.
+
+Besides, CORS in OIDC is a special KeyCloak feature (and not a bug).
+
+Hopefully this answer serves you well."
+54305880,How can I restrict client access to only one group of users in keycloak?,"I have a client in `keycloak` for my awx(ansible tower) webpage.
+
+I need only the users from one specific `keycloak` group to be able to log in through this client. 
+
+How can I forbid all other users(except from one particular group) from using this `keycloak` client?",54384513,"I solved it like this:
+
+1. Create a new role in Keycloak.
+2. Assign this role to the group.
+3. Create a new authentication script in Kycloak. Configure which role is allowed upon login (e.g. `user.hasRole(realm.getRole(""yourRoleName""))`).
+4. In the client's settings, under ""Authentication Flow Overrides"", choose the authentication script that was just created."
+42524153,"Keycloak, not returning access token if update password action selected","I am calling `/auth/realms/master/protocol/openid-connect/token` to get access token by sending below content in body,
+`grant_type=password&client_id=example-docker-jaxrs-app&username=user&password=password&client_secret=1d27aedd-11c2-4ed2-97d5-c586e1f9b3cd`
+
+but when I put update password as required action to user from keycloak admin console getting following error when try to get token by above mentioned api,
+
+
+    {
+        ""error"": ""invalid_grant"",
+        ""error_description"": ""Account is not fully set up""
+    }
+
+
+
+one more thing, What is difference in 2 setting, Temporary password and Update password Required action ? 
+
+[![Temporary flag here in users credential tab][2]][2]
+
+[![Update password as required action in user details tab][3]][2]
+
+
+  
+  [2]: https://i.stack.imgur.com/TeLzf.png
+  [3]: https://i.stack.imgur.com/TDYeH.png",42602411,"If you mark the password as temporary a user action to `update password` is marked as required. 
+
+And until the password has been updated/set by the user i.e. this action has been completed, you won't be able to get an access token using this user since the account is not ""fully setup"" and is in a kind of intermediate state where an action is required to complete the setup."
+48855122,Keycloak adaptor for golang application,"I am going to secure my golang application using keycloak, but keycloak itself does not support go language. 
+
+There are some go adaptor as an open project in github that has implemented openId connect protocol as a provider service, but they do not provide an example or documentation on how to integrate libraries with an application. 
+
+How can i interact with keycloak using golang?",51456282,"As you have pointed out, there is no official keycloak adapter for golang.
+But it is pretty straight forward to implement it. Here is a little walk through.
+
+## Keycloak server
+
+For this example, I will use the official keycloak docker image to start the server.
+The version used is 4.1.0.Final. I think this will work with older KeyCloak versions too though.
+
+    docker run -d -p 8080:8080 -e KEYCLOAK_USER=keycloak -e KEYCLOAK_PASSWORD=k --name keycloak jboss/keycloak:4.1.0.Final
+
+After the server is up and running, you can open `localhost:8080/auth` in your browser, navigate to the administration console and login with username `keycloak` and `k` as the corresponding password.
+
+I will not go through the complete process of creating a realm/clients/users. You can look this up under 
+https://www.keycloak.org/docs/latest/server_admin/index.html#admin-console
+
+Here is just an outline for what I did to reproduce this example:
+
+1. create a realm named `demo`
+2. turn off the requirement of ssl for this realm (realmsettings -> login -> require ssl) 
+3. create a client named `demo-client` (change the ""Access Type"" to confidential)
+4. create a user named demo with password demo (users -> add user). Make sure to activate and impersonate this user.
+5. configure the demo-client to be confidential and use `http://localhost:8181/demo/callback` as a valid redirect URI.
+
+The resulting keycloak.json (obtained from the installation tab) looks like this:
+
+    {
+        ""realm"": ""demo"",
+        ""auth-server-url"": ""http://localhost:8080/auth"",
+        ""ssl-required"": ""none"",
+        ""resource"": ""demo-client"",
+        ""credentials"": {
+            ""secret"": ""cbfd6e04-a51c-4982-a25b-7aaba4f30c81""
+        },
+        ""confidential-port"": 0
+    }
+
+Beware that your secret will be different though. 
+
+## The Go Server
+
+Let's go over to the go server. I use the `github.com/coreos/go-oidc` package for the heavy lifting:
+
+    package main
+
+    import (
+        ""context""
+        ""encoding/json""
+        ""log""
+        ""net/http""
+        ""strings""
+
+        oidc ""github.com/coreos/go-oidc""
+        ""golang.org/x/oauth2""
+    )
+
+    func main() {
+        configURL := ""http://localhost:8080/auth/realms/demo""
+        ctx := context.Background()
+        provider, err := oidc.NewProvider(ctx, configURL)
+        if err != nil {
+            panic(err)
+        }
+
+        clientID := ""demo-client""
+        clientSecret := ""cbfd6e04-a51c-4982-a25b-7aaba4f30c81""
+
+        redirectURL := ""http://localhost:8181/demo/callback""
+        // Configure an OpenID Connect aware OAuth2 client.
+        oauth2Config := oauth2.Config{
+            ClientID:     clientID,
+            ClientSecret: clientSecret,
+            RedirectURL:  redirectURL,
+            // Discovery returns the OAuth2 endpoints.
+            Endpoint: provider.Endpoint(),
+            // ""openid"" is a required scope for OpenID Connect flows.
+            Scopes: []string{oidc.ScopeOpenID, ""profile"", ""email""},
+        }
+        state := ""somestate""
+
+        oidcConfig := &oidc.Config{
+            ClientID: clientID,
+        }
+        verifier := provider.Verifier(oidcConfig)
+
+        http.HandleFunc(""/"", func(w http.ResponseWriter, r *http.Request) {
+            rawAccessToken := r.Header.Get(""Authorization"")
+            if rawAccessToken == """" {
+                http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
+                return
+            }
+
+            parts := strings.Split(rawAccessToken, "" "")
+            if len(parts) != 2 {
+                w.WriteHeader(400)
+                return
+            }
+            _, err := verifier.Verify(ctx, parts[1])
+
+            if err != nil {
+                http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
+                return
+            }
+
+            w.Write([]byte(""hello world""))
+        })
+
+        http.HandleFunc(""/demo/callback"", func(w http.ResponseWriter, r *http.Request) {
+            if r.URL.Query().Get(""state"") != state {
+                http.Error(w, ""state did not match"", http.StatusBadRequest)
+                return
+            }
+
+            oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get(""code""))
+            if err != nil {
+                http.Error(w, ""Failed to exchange token: ""+err.Error(), http.StatusInternalServerError)
+                return
+            }
+            rawIDToken, ok := oauth2Token.Extra(""id_token"").(string)
+            if !ok {
+                http.Error(w, ""No id_token field in oauth2 token."", http.StatusInternalServerError)
+                return
+            }
+            idToken, err := verifier.Verify(ctx, rawIDToken)
+            if err != nil {
+                http.Error(w, ""Failed to verify ID Token: ""+err.Error(), http.StatusInternalServerError)
+                return
+            }
+
+            resp := struct {
+                OAuth2Token   *oauth2.Token
+                IDTokenClaims *json.RawMessage // ID Token payload is just JSON.
+            }{oauth2Token, new(json.RawMessage)}
+
+            if err := idToken.Claims(&resp.IDTokenClaims); err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+            }
+            data, err := json.MarshalIndent(resp, """", ""    "")
+            if err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+            }
+            w.Write(data)
+        })
+
+        log.Fatal(http.ListenAndServe(""localhost:8181"", nil))
+    }
+
+This program starts a regular http server with two endpoints. The first one (""/"") is your regular endpoint that handles
+application logic. In this case, it only returns ""hello world"" to your client.
+
+The second endpoint (""/demo/callback"") is used as a callback for keycloak. This endpoint needs to be registered on your
+keycloak server. Keycloak will issue a redirect to this callback URL upon successful user authentication. The redirect contains some additional query parameters. These parameters contain a code that can be used to obtain access/id tokens.
+
+## Verify your setup
+
+In order to test this setup you can open a webbrowser and navitage to `http://localhost:8181`. 
+The request should reach your go server, which tries to authenticate you. Since you did not send a token, the go server
+will redirecty you to keycloak to authenticate. 
+You should see the login screen of keycloak. Login with the demo user you have created for this realm (demo/demo).
+If you have configured your keycloak correctly, it will authenticate you and redirect you to your go server callback.
+
+The end result should be a json like this
+
+    {
+        ""OAuth2Token"": {
+            ""access_token"": ""eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJsc1hHR2VxSmx3UUZweWVYR0x6b2plZXBYSEhXUngtTHVJTVVLdDBmNmlnIn0.eyJqdGkiOiI5ZjAxNjM2OC1lYmEwLTRiZjMtYTU5Ni1kOGU1MzdmNTNlZGYiLCJleHAiOjE1MzIxNzM2NTIsIm5iZiI6MCwiaWF0IjoxNTMyMTczMzUyLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMvZGVtbyIsImF1ZCI6ImRlbW8tY2xpZW50Iiwic3ViIjoiMzgzMzhjOGItYWQ3Zi00NjlmLTgzOTgtMTc5ODk1ODFiYTEyIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiZGVtby1jbGllbnQiLCJhdXRoX3RpbWUiOjE1MzIxNzMzNTIsInNlc3Npb25fc3RhdGUiOiJjZTg2NWFkZC02N2I4LTQ5MDUtOGYwMy05YzE2MDNjMWJhMGQiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInByZWZlcnJlZF91c2VybmFtZSI6ImRlbW8iLCJlbWFpbCI6ImRlbW9AZGVtby5jb20ifQ.KERz8rBddxM9Qho3kgigX-fClWqbKY-3JcWT3JOQDoLa-prkorfa40BWlyf9ULVgjzT2d8FLJpqQIQYvucKU7Q7vFBVIjTGucUZaE7b6JGMea5H34A1i-MNm7L2CzDJ2GnBONhNwLKoftTSl0prbzwkzcVrps-JAZ6L2gssSa5hBBGJYBKAUfm1OIb57Jq0vzro3vLghZ4Ay7iNunwfcHUrxiFJfUjaU6PQwzrA5pnItOPuavJFUgso7-3JLtn3X9GQuyyZKrkDo6-gzU0JZmkQQzAXXgt43NxooryImuacwSB5xbIKY6qFkedldoOPehld1-oLv0Yy_FIwEad3uLw"",
+            ""token_type"": ""bearer"",
+            ""refresh_token"": ""eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJsc1hHR2VxSmx3UUZweWVYR0x6b2plZXBYSEhXUngtTHVJTVVLdDBmNmlnIn0.eyJqdGkiOiI0MjdmMTlhYy1jMTkzLTQ2YmQtYWFhNi0wY2Q1OTI5NmEwMGQiLCJleHAiOjE1MzIxNzUxNTIsIm5iZiI6MCwiaWF0IjoxNTMyMTczMzUyLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvYXV0aC9yZWFsbXMvZGVtbyIsImF1ZCI6ImRlbW8tY2xpZW50Iiwic3ViIjoiMzgzMzhjOGItYWQ3Zi00NjlmLTgzOTgtMTc5ODk1ODFiYTEyIiwidHlwIjoiUmVmcmVzaCIsImF6cCI6ImRlbW8tY2xpZW50IiwiYXV0aF90aW1lIjowLCJzZXNzaW9uX3N0YXRlIjoiY2U4NjVhZGQtNjdiOC00OTA1LThmMDMtOWMxNjAzYzFiYTBkIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIn0.FvvDW6ZSH8mlRR2zgaN1zesX14SmkCs9RrIVU4Jn1-SHVdKEA6YKur0-RUAFTObQDMLVhFFJ05AjGVGWpBrgVDcAwW2pI9saM-OHlyTJ3VfFoylgfzakVOIpbIDnHO12UaJrkOI9NWPAJdbBOzBHfsDhKbxhjg4ZX8SwlKr42rV4WWuSRcNu4_YDVO19SiXSCKXVldZ1_2S-qPvViq7VZfaoRLHuYyDvma_ByMsmib9JUkevJ8dxsYxVQ5FWaAfFanh1a1f8HxNRI-Cl180oPn1_Tqq_SYwxzBCw7Q_ENkMirwRS1a4cX9yMVEDW2uvKz2D-OiNAUK8d_ONuPEkTGQ"",
+            ""expiry"": ""2018-07-21T13:47:28.986686385+02:00""
+        },
+        ""IDTokenClaims"": {
+            ""jti"": ""f4d56526-37d9-4d32-b99d-81090e92d3a7"",
+            ""exp"": 1532173652,
+            ""nbf"": 0,
+            ""iat"": 1532173352,
+            ""iss"": ""http://localhost:8080/auth/realms/demo"",
+            ""aud"": ""demo-client"",
+            ""sub"": ""38338c8b-ad7f-469f-8398-17989581ba12"",
+            ""typ"": ""ID"",
+            ""azp"": ""demo-client"",
+            ""auth_time"": 1532173352,
+            ""session_state"": ""ce865add-67b8-4905-8f03-9c1603c1ba0d"",
+            ""acr"": ""1"",
+            ""email_verified"": true,
+            ""preferred_username"": ""demo"",
+            ""email"": ""demo@demo.com""
+        }
+    }
+
+
+You can copy your access token and use curl to verify if the server is able to accept your tokens:
+
+    # use your complete access token here
+    export TOKEN=""eyJhbG...""
+    curl -H ""Authorization: Bearer $TOKEN"" localhost:8181
+    # output hello world
+
+You can try it again after the token has expired - or temper with the token. In case you do it, you should get a redirect to 
+your keycloak server again."
+49810326,How to Create a Client in Keycloak to use with AWS Cognito Identity Federation,"I have a user base with identity and authentication managed by keycloak. I would like to allow these users to login and use AWS API Gateway services with Cognito using an OpenID Connect federation.
+
+The AWS documentation on using an OpenID Connect provider is somewhat lacking. I found an [old reference][1] using SAML but would prefer to avoid this and use OpenID Connect.
+
+If anybody has achieved this would they mind writing up some simple instructions from the keycloak admin perspective?
+
+  [1]: https://stories.scandiweb.com/sign-in-to-amazon-aws-using-saml-protocol-and-keycloak-as-identity-provider-e3798387de99",50343585,"Answering my own question for future searchers based on advice I have received from AWS Support:
+
+The question itself was based on a misunderstanding. AWS Cognito does not authenticate users with Keycloak - the client application does that. 
+
+Cognito Identity Federation is about granting access to AWS resources by creating AWS Access credentials to an identity with a token from an external identity provider.
+
+The OpenID client in keycloak is the one and same client that is used by the end-user application. Redirection URLs send the user back to the application, which then passes the JWT token to AWS to exchange for AWS credentials.
+
+Cognito relies on the client app first directing the user to the authentication provider of their choice (in this case Keycloak), and then passing the access token from Keycloak to Cognito which uses it to 1) create an identity if required, and 2) generate AWS credentials for access to the AWS role for ""Authenticated"" users in Cognito.
+
+An example using the AWS CLI
+----------------------------
+
+*Prerequisite: client app obtains JWT access token for the end user using any OpenID authentication method*
+    
+Create or retrieve an identity from cognito:
+
+    aws cognito-identity get-id --cli-input-json file://test.json
+    
+Returns the identity:
+
+    {
+        ""IdentityId"": ""ap-southeast-2:<identity_uuid>""
+    }
+*(substitute `ap-southeast-2` in the examples with your local region)*
+
+`test.json` contains the details of the AWS Account, the Cognito pool and the user's JWT access token from Keycloak:
+    
+    {
+        ""AccountId"": ""123456789012"",
+        ""IdentityPoolId"": ""ap-southeast-2:<cognito-identity-pool-uuid>"",
+        ""Logins"": {
+            ""keycloak.url/auth/realms/realmname"": ""<access_token_jwt>""
+         }
+    }
+
+The app can then use this returned identity, along with the JWT access token to obtain AWS Credentials with which to consume AWS services...
+
+    aws cognito-identity get-credentials-for-identity --identity-id ap-southeast-2:<identity_uuid> --cli-input-json file://test2.json
+
+Returns an AccessKeyId, a SecretKey and an AWS SessionToken along with an expiry time. These can be used to access AWS services depending on the permissions of the authenticated role that was established in the setting for the Cognito Federated Identity Pool:
+
+    {
+        ""Credentials"": {
+            ""SecretKey"": ""<secret_key>"",
+            ""SessionToken"": ""<aws_cli_session_token>"",
+            ""Expiration"": 1567891234.0,
+            ""AccessKeyId"": ""<access_key>""
+        },
+        ""IdentityId"": ""ap-southeast-2:<identity_uuid>""
+    }
+
+The contents of `test2.json`
+
+    {
+        ""IdentityId"": ""ap-southeast-2:<identity_uuid>"",
+        ""Logins"": {
+            ""keycloak.url/auth/realms/realmname"": ""<keycloak_access_token_jwt>""
+        }
+    }
+
+I hope this provides context and assistance to people that stumble across this question in future."
+57787768,Example keycloak spring-boot app fails to find bean KeycloakSpringBootConfigResolver,"I'm trying to run example app from:
+
+https://github.com/keycloak/keycloak-quickstarts/tree/latest/app-springboot
+
+I'm getting error:
+
+    ***************************
+    APPLICATION FAILED TO START
+    ***************************
+
+    Description:
+
+    Parameter 1 of method setKeycloakSpringBootProperties in org.keycloak.adapters.springboot.KeycloakBaseSpringBootConfiguration required a bean of type 'org.keycloak.adapters.springboot.KeycloakSpringBootConfigResolver' that could not be found.
+
+
+    Action:
+
+    Consider defining a bean of type 'org.keycloak.adapters.springboot.KeycloakSpringBootConfigResolver' in your configuration.
+
+
+    Process finished with exit code 1",57796450,"I don't have a solution at the moment, but I can see that the exact same issue has been registered on the Keycloak Jira a couple of months ago: https://issues.jboss.org/browse/KEYCLOAK-10595. The problem seems to be caused by the code delivered with this PR: https://github.com/keycloak/keycloak/pull/6075.
+
+The author of the PR described the problem in this way:
+""The only remaining problem is, that the resolver is usually contained in the configuration using the KeycloakAutoConfiguration (in my example the SharedConfiguration) so you are trying to access the bean while the configuration is stil being created. This can be solved by moving the resolver bean into another configuration which has to be loaded before the KeycloakAutoConfiguration.""
+(source: https://issues.jboss.org/browse/KEYCLOAK-10334?focusedCommentId=13738518&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-13738518)
+
+----------
+**UPDATE (OLD)**
+
+On the issue from the Keycloak Jira (https://issues.jboss.org/browse/KEYCLOAK-11282), a temporary workaround has been suggested.
+
+    @Configuration
+    public class MyKeycloakSpringBootConfigResolver extends KeycloakSpringBootConfigResolver {
+        private final KeycloakDeployment keycloakDeployment;
+    
+        public MyKeycloakSpringBootConfigResolver(KeycloakSpringBootProperties properties) {
+            keycloakDeployment = KeycloakDeploymentBuilder.build(properties);
+        }
+    
+        @Override
+        public KeycloakDeployment resolve(HttpFacade.Request facade) {
+            return keycloakDeployment;
+        }
+    }
+
+
+----------
+**LATEST UPDATE**
+
+A simpler way to solve the problem is to declare a `KeycloakSpringBootConfigResolver` in a separate configuration class. This option will fix issues with both Spring Boot and Spring Security.
+
+    @Configuration
+    public class KeycloakConfig {
+    
+        @Bean
+        public KeycloakSpringBootConfigResolver keycloakConfigResolver() {
+            return new KeycloakSpringBootConfigResolver();
+        }
+    }"
+46729330,Copy entire directory from container to host,"I'm trying to copy an entire directory from my docker image to my local machine.
+
+The image is a keycloak image, and I'd like to copy the themes folder so I can work on a custom theme.
+
+I am running the following command -
+
+    docker cp 143v73628670f:keycloak/themes ~/Development/Code/Git/keycloak-recognition-login-branding
+
+However I am getting the following response -
+
+    Error response from daemon: Could not find the file keycloak/themes in container 143v73628670f
+
+When I connect to my container using -
+
+     docker exec -t -i 143v73628670f /bin/bash
+
+I can navigate to the themes by using -
+
+    cd keycloak/themes/
+
+I can see it is located there and the files are as expected in the terminal.
+
+I'm running the instance locally on a Mac.
+
+How do I copy that entire themes folder to my local machine? What am I doing wrong please?",46729739,"**EDIT**
+
+As a result of running 'pwd' your should run the Docker cp command as follows:
+
+    docker cp 143v73628670f:/opt/jboss/keycloak/themes ~/Development/Code/Git/keycloak-recognition-login-branding
+
+
+
+You are forgetting the trailing ' / '. Therefore your command should look like this:
+
+    docker cp 143v73628670f:/keycloak/themes/ ~/Development/Code/Git/keycloak-recognition-login-branding
+
+Also, you could make use of Docker volumes, which allows you to pass a local directory into the container when you *run* the container"
+41721032,Keycloak client for ASP.NET Core,"Is there any existing Keycloak client for Asp.net Core? [I have found a NuGet package for .net][1] but it doesn't work with Core. Do you have any ideas how to easily integrate with this security server (or maybe using any other alternatives)?
+
+
+  [1]: https://www.nuget.org/packages/Owin.Security.Keycloak",43875291,"I've played a bit with this today. The most straightforward way is too use OpenId standard.
+
+In Startup.cs I used OpenIdConnect Authentication:
+
+        public void Configure(...)
+        { (...)
+             app.UseCookieAuthentication(new CookieAuthenticationOptions
+            {
+                AuthenticationScheme = CookieAuthenticationDefaults.AuthenticationScheme,
+                AutomaticAuthenticate = true,
+                CookieHttpOnly = true,
+                CookieSecure = CookieSecurePolicy.SameAsRequest
+            });
+            app.UseOpenIdConnectAuthentication(CreateKeycloakOpenIdConnectOptions());`(...)
+     }`
+
+OpenIdConnectOptions method:
+
+    private OpenIdConnectOptions CreateKeycloakOpenIdConnectOptions()
+        {
+            var options = new OpenIdConnectOptions
+            {
+                AuthenticationScheme = ""oidc"",
+                SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme,
+                Authority = Configuration[""Authentication:KeycloakAuthentication:ServerAddress""]+""/auth/realms/""+ Configuration[""Authentication:KeycloakAuthentication:Realm""],
+                RequireHttpsMetadata = false, //only in development
+                PostLogoutRedirectUri = Configuration[""Authentication:KeycloakAuthentication:PostLogoutRedirectUri""],
+                ClientId = Configuration[""Authentication:KeycloakAuthentication:ClientId""],
+                ClientSecret = Configuration[""Authentication:KeycloakAuthentication:ClientSecret""],
+                ResponseType = OpenIdConnectResponseType.Code,
+                GetClaimsFromUserInfoEndpoint = true,
+                SaveTokens = true
+
+            };
+            options.Scope.Add(""openid"");
+            return options;
+        }
+
+In appsettings.json add configuration for Keycloak:
+
+<!-- begin snippet: js hide: false console: false babel: false -->
+
+<!-- language: lang-js -->
+
+    {
+      (...),
+      ""Authentication"": {
+        ""KeycloakAuthentication"": {
+          ""ServerAddress"": ""http://localhost:8180"",
+          ""Realm"": ""demo"",
+          ""PostLogoutRedirectUri"": ""http://localhost:57630/"",
+          ""ClientId"": ""KeycloakASPNETCore"",
+          ""ClientSecret"": ""secret-get-it-in-keycloakConsole-client-credentials""
+        }
+      }
+    }
+
+<!-- end snippet -->
+
+Keycloak  client is configuerd as followed:
+
+ 
+
+- [Client settings][1],
+- [I've added 'accounting' role for test][2],
+- [I added mapper 'member_of' of type 'User Client Role' for roles so that roles are added in the claims][3]
+
+
+If I want to Authorize user by role I do something like this:
+
+Add [authorization by claims][4] in ConfigureServices method:
+
+    public void ConfigureServices(IServiceCollection services)
+        {
+            (...)
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy(""Accounting"", policy =>
+                policy.RequireClaim(""member_of"", ""[accounting]"")); //this claim value is an array. Any suggestions how to extract just single role? This still works.
+            });
+        }
+
+I've edited get method in ValuesController (Default Web API template):
+
+    [Authorize(Policy = ""Accounting"")]
+    [Route(""api/[controller]"")]
+    public class ValuesController : Controller
+    {
+        // GET api/values        
+        [HttpGet]
+        public Dictionary<string,string> Get()
+        {
+            var userPrinciple = User as ClaimsPrincipal;
+            var claims = new Dictionary<string, string>();
+            
+            foreach (var claim in userPrinciple.Claims)
+            {
+                var key = claim.Type;
+                var value = claim.Value;
+
+                claims.Add(key, value);
+            }
+            
+
+            return claims;
+        }
+
+If I login with user that has accounting role or is in group that has accounting role, it should display my user claims on address localhost:57630/api/values.
+  
+  [1]: https://i.stack.imgur.com/4VINc.png
+  [2]: https://i.stack.imgur.com/EVE5h.png
+  [3]: https://i.stack.imgur.com/DK848.png
+  [4]: https://learn.microsoft.com/en-us/aspnet/core/security/authorization/claims
+
+I hope this works for you.
+
+**Edit: .NET Core 2**
+Hi everyone! The way my app works changed quite a bit and I have not fully tested .NET Core 2 yet, but you can still try connecting to Keycloak like this in ConfigureServices:
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    
+                    options.Authority = Configuration[""Authentication:KeycloakAuthentication:ServerAddress""] + ""/auth/realms/"" + Configuration[""Authentication:KeycloakAuthentication:Realm""];
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        ValidAudiences = new string[] { ""curl"", ""financeApplication"", ""accountingApplication"", ""swagger""}
+                    };
+                    options.RequireHttpsMetadata = false; //for test only!
+                    options.SaveToken = true;
+                    options.Validate();
+                    
+                });
+
+And in Configure:
+
+    app.UseAuthentication();
+
+You can access your token later with IHttpContextAccessor httpContextAccessor, for example:
+
+    public KeycloakAuthorizationRequirementHandler(IConfiguration config,
+                IHttpContextAccessor httpContextAccessor,
+                IMemoryCache memoryCache)
+            {
+                _config = config;
+                _httpContextAccessor = httpContextAccessor;
+                _memoryCache = memoryCache;
+            }
+
+//get accessToken
+
+    var accessToken = _httpContextAccessor.HttpContext.GetTokenAsync(""access_token"");
+
+    _httpContextAccessor.HttpContext.Items[""username""] = username;
+
+Tell me how it goes. "
+46470477,How to get Keycloak users via REST without admin account,"Is there a way to get a list of users on a Keycloak realm via REST **WITHOUT** using an admin account? Maybe some sort of assignable role from the admin console? Looking for any ideas.
+
+Right now I'm using admin credentials to grab an access token, then using that token to pull users from the `realm/users` endpoint.
+
+Getting the token (from node.js app via `request`):
+
+    uri: `${keycloakUri}/realms/master/protocol/openid-connect/token`,
+    form: {
+      grant_type: 'password',
+      client_id: 'admin-cli',
+      username: adminUsername,
+      password: adminPassword,
+    }
+
+Using the token:
+
+    uri: `${keycloakUri}/admin/realms/${keycloakRealm}/users`,
+    headers: {
+      'authorization': `bearer ${passwordGrantToken}`,
+    }
+
+I want to be able to use generic user info (usernames, emails, fullnames) from a client application.
+
+",46558530,"You need to assign the `view-users` role from the `realm-management` client, for the desired user. That would be the configuration for the user:
+
+[![enter image description here][1]][1]
+
+Then you can grab all the users from the `${keycloakUri}/admin/realms/${keycloakRealm}/users` endpoint. That's the info retrieved from the enpoint, accesed via Postman:
+
+[![enter image description here][2]][2]
+
+Also, unrelated to the asked question, I strongly encourage you not to use `grant_type=password` unless you absolutelly need to. From the [keycloak blog][3]:
+
+    RESULT=`curl --data ""grant_type=password&client_id=curl&username=user&password=password"" http://localhost:8180/auth/realms/master/protocol/openid-connect/token`
+
+> This is a bit cryptic and luckily this is not how you should really be obtaining tokens. Tokens should be obtained by web applications by redirecting to the Keycloak login page. We're only doing this so we can test the service as we don't have an application that can invoke the service yet. Basically what we are doing here is invoking Keycloaks OpenID Connect token endpoint with grant type set to password which is the Resource Owner Credentials flow that allows swapping a username and a password for a token.
+
+See also the [Oauth2 spec][4].
+
+
+  [1]: https://i.stack.imgur.com/Oaz0k.png
+  [2]: https://i.stack.imgur.com/sUqxd.png
+  [3]: https://planet.jboss.org/post/getting_started_with_keycloak_securing_a_rest_service
+  [4]: https://www.rfc-editor.org/rfc/rfc6749#section-4.3.2"
+67044893,M1 mac cannot run jboss/keycloak docker image,"Switched to m1 mac a week ago and I cannot get my application up and running with docker because of the jboss/keycloak image not working as expected. Getting the following message from the container when trying to access localhost:8080
+
+    12:08:12,456 ERROR [org.jboss.msc.service.fail] (MSC service thread 1-5) MSC000001: Failed to start service org.wildfly.network.interface.private: org.jboss.msc.service.StartException in service org.wildfly.network.interface.private: WFLYSRV0082: failed to resolve interface private
+
+    12:08:12,526 ERROR [org.jboss.as.controller.management-operation] (Controller Boot Thread) WFLYCTL0013: Operation (""add"") failed - address: ([(""interface"" => ""private"")]) - failure description: {""WFLYCTL0080: Failed services"" => {""org.wildfly.network.interface.private"" => ""WFLYSRV0082: failed to resolve interface private""}}
+
+    12:08:13,463 ERROR [org.jboss.as] (Controller Boot Thread) WFLYSRV0026: Keycloak 12.0.4 (WildFly Core 13.0.3.Final) started (with errors) in 20826ms - Started 483 of 925 services (54 services failed or missing dependencies, 684 services are lazy, passive or on-demand)
+
+Tried with all image versions and all behave the same. Has anyone managed to run this image without issues? Thanks",67283879,"Using this image, I am now able to startup keycloak. https://hub.docker.com/r/wizzn/keycloak"
+56561554,Keycloak Realm VS Keycloak Client,"I am recently working on Keycloak 6.0.1 for SSO for authentication for multiple applications in organisation.  I am confused in difference between clients and realm.  
+
+If I have 5 different application to be managed for SSO then do I have to create 5 different clients or 5 different realm ?
+
+If I say I have to create 5 different Clients under 1 realm then could I execute different authentication flow for different client in same realm ?
+
+",59385683,"According to Keycloak documentation 
+
+ 1. Realm - A realm manages a set of users, credentials, roles, and groups. A user belongs to and logs into a realm. Realms are isolated from one another and can only manage and authenticate the users that they control.
+
+ 2. Clients are entities that can request Keycloak to authenticate a user. Most often, clients are applications and services that want to use Keycloak to secure themselves and provide a single sign-on solution. Clients can also be entities that just want to request identity information or an access token so that they can securely invoke other services on the network that are secured by Keycloak.
+
+For your scenario you can create 5 different clients under one realm. Keycloak provides out of the box support for Single Sign On. For more information refer to Keycloak documentation [keycloak documentation link][1]
+
+
+  [1]: https://www.keycloak.org/docs/latest/getting_started/"
+48146410,unable to get oauth token from Keycloak,"I have an application which is getting Auth from Keycloak.
+
+My Access Type is public so I do not have any client secret.
+
+I have given access to ""**Direct Access Grants Enabled**"" as **ON**
+
+Refer below:
+
+[![enter image description here][1]][1]
+
+I am getting error from postman as below:
+
+    {
+        ""error"": ""invalid_grant"",
+        ""error_description"": ""Invalid user credentials""
+    }
+
+Note : My credentials is right as I am using same to login on keycloak
+
+I have also check the key and they seems correct as per below reference:
+
+https://gist.github.com/rac021/623e4f4c87069acd0c38d952568f8a3d
+
+while I have setup as per my understanding.
+
+References:
+
+[![enter image description here][2]][2]
+
+
+[![enter image description here][3]][3]
+
+Please let me know if I missing anything or you need any more details.
+
+Any workaround will be appreciated !!!!
+
+  [1]: https://i.stack.imgur.com/EMQ3x.jpg
+  [2]: https://i.stack.imgur.com/lX2yy.jpg
+  [3]: https://i.stack.imgur.com/hTZu8.jpg",48147104,"The error message ``""Invalid user credentials""`` is reliable. That is, you either specified a wrong username or password.  
+Check that the user really exists in the realm you are addressing with the URL. Particularly if it is not the _master_ realm which usually will be used to login to keycloak admin console."
+53118828,Keycloak public client and authorization,"We are using keycloak-adapter with Jetty for authentication and authorization using Keycloak.
+As per [Keycloak doc for OIDC Auth flow][1]:
+
+> **Another important** aspect of this flow is the concept of a **public vs. a confidential** client.   Confidential clients are required to
+> provide a client secret when they exchange the temporary codes for
+> tokens. Public clients are not required to provide this client secret.
+> Public clients are perfectly fine so long as HTTPS is strictly
+> enforced and you are very strict about what redirect URIs are
+> registered for the client.
+> 
+> HTML5/JavaScript clients always have to be public clients because
+> there is no way to transmit the client secret to them in a secure
+> manner.
+
+We have webapps which connect to Jetty and use auth. So, we have created a public client and it works awesome for webapp/REST authentication.  
+The problem is as soon as we enable authorization, client type gets converted to Confidential from Public and it does not allow the reset it as Public. Now, we are in soup. We cannot have public clients due to authorization and we cannot connect webapps to confidential client.  
+This seems to be contradictory to us. Any idea why client needs to be confidential for authorization? Any help on this how can we overcome this issue?  
+Thanks.
+
+
+  [1]: https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc-auth-flows",56824022,"As far as I understood, you have your frontend and backend applications separated. If your frontend is a static web-app and not being served by the same backend application (server), and your backend is a simple REST API - then you would have two Keycloak clients configured:
+
+* ``public`` client for the frontend app. It would be responsible for acquiring JWT tokens. 
+* ``bearer-only`` client, which would be attached to your backend application.
+
+To enable authorization you would create roles (either realm or client scoped, start on the realm level as it's easier to comprehend). Every user would then be assigned a role/s in the Keycloak admin UI. Based on this you should configure your keycloak adapter configuration (on the backend).
+
+All things considered, in order to talk to your REST API, you would attach a JWT token to each HTTP request in the Authorization header. Depending on your frontend framework, you can use either of these:
+
+* [Keycloak js adapter][1]
+* Other bindings ([angular][2], [react][3])
+
+> P.S. For debugging I have just written a CLI tool called [brauzie][4]
+> that would help you fetch and analyse your JWT tokens (scopes, roles, etc.). It could be used for both public and confidential clients. You
+> could as well use [Postman][5] and https://jwt.io
+
+HTH :)
+
+  [1]: https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter
+  [2]: https://www.npmjs.com/package/keycloak-angular
+  [3]: https://www.npmjs.com/package/react-keycloak
+  [4]: https://github.com/maslick/brauzie
+  [5]: https://www.getpostman.com/"
+48274251,Keycloak: Access token validation end point,"Running keycloak on standalone mode.and created a micro-service by using node.js adapter for authenticating api calls.
+
+jwt token from the keyclaok is sending along with each api calls. it will only respond if the token sent is a valid one.
+
+ - how can i validate the access token from the micro service?
+ - is there any token validation availed by keycloak?
+
+",51047525,"To expand on [troger19's answer][1]:
+
+> Question 1: How can I validate the access token from the micro service?
+
+Implement a function to inspect each request for a bearer token and send that token off for validation by your keycloak server at the userinfo endpoint before it is passed to your api's route handlers.
+
+You can find your keycloak server's specific endpoints (like the userinfo route) by requesting its [well-known configuration][2].
+
+If you are using expressjs in your node api this might look like the following:
+
+    const express = require(""express"");
+    const request = require(""request"");
+    
+    const app = express();
+    
+    /*
+     * additional express app config
+     * app.use(bodyParser.json());
+     * app.use(bodyParser.urlencoded({ extended: false }));
+     */
+    
+    const keycloakHost = 'your keycloak host';
+    const keycloakPort = 'your keycloak port';
+    const realmName = 'your keycloak realm';
+    
+    // check each request for a valid bearer token
+    app.use((req, res, next) => {
+      // assumes bearer token is passed as an authorization header
+      if (req.headers.authorization) {
+        // configure the request to your keycloak server
+        const options = {
+          method: 'GET',
+          url: `https://${keycloakHost}:${keycloakPort}/auth/realms/${realmName}/protocol/openid-connect/userinfo`,
+          headers: {
+            // add the token you received to the userinfo request, sent to keycloak
+            Authorization: req.headers.authorization,
+          },
+        };
+    
+        // send a request to the userinfo endpoint on keycloak
+        request(options, (error, response, body) => {
+          if (error) throw new Error(error);
+    
+          // if the request status isn't ""OK"", the token is invalid
+          if (response.statusCode !== 200) {
+            res.status(401).json({
+              error: `unauthorized`,
+            });
+          }
+          // the token is valid pass request onto your next function
+          else {
+            next();
+          }
+        });
+      } else {
+        // there is no token, don't process request further
+        res.status(401).json({
+        error: `unauthorized`,
+      });
+    });
+    
+    // configure your other routes
+    app.use('/some-route', (req, res) => {
+      /*
+      * api route logic
+      */
+    });
+    
+    
+    // catch 404 and forward to error handler
+    app.use((req, res, next) => {
+      const err = new Error('Not Found');
+      err.status = 404;
+      next(err);
+    });
+
+> Question 2: Is there any token validation availed by Keycloak?
+
+Making a request to Keycloak's userinfo endpoint is an easy way to verify that your token is valid.
+
+Userinfo response from **valid token**:
+
+> Status: 200 OK
+
+    {
+        ""sub"": ""xxx-xxx-xxx-xxx-xxx"",
+        ""name"": ""John Smith"",
+        ""preferred_username"": ""jsmith"",
+        ""given_name"": ""John"",
+        ""family_name"": ""Smith"",
+        ""email"": ""john.smith@example.com""
+    }
+
+Userinfo response from **invalid valid token**:
+
+> Status: 401 Unauthorized
+
+    {
+        ""error"": ""invalid_token"",
+        ""error_description"": ""Token invalid: Token is not active""
+    }
+
+**Additional Information:**
+
+Keycloak provides its own npm package called [keycloak-connect][3]. The documentation describes simple authentication on routes, requiring users to be logged in to access a resource:
+
+    app.get( '/complain', keycloak.protect(), complaintHandler );
+
+I have not found this method to work using bearer-only authentication. In my experience, implementing this simple authentication method on a route results in an ""access denied"" response. [This question][4] also asks about how to authenticate a rest api using a Keycloak access token. [The accepted answer][5] recommends using the simple authentication method provided by keycloak-connect as well but as Alex states in the comments:
+
+> ""The keyloak.protect() function (doesn't) get the bearer token from
+> the header. I'm still searching for this solution to do bearer only
+> authentication – alex Nov 2 '17 at 14:02
+
+
+  [1]: https://stackoverflow.com/a/49856835/4488232
+  [2]: https://stackoverflow.com/a/30449500/4488232
+  [3]: https://www.keycloak.org/docs/3.3/securing_apps/topics/oidc/nodejs-adapter.html
+  [4]: https://stackoverflow.com/questions/42394475/authenticate-a-rest-api-using-keycloak-access-token-received-from-authorization
+  [5]: https://stackoverflow.com/a/42436437/4488232"
+48400812,"SSO with SAML, Keycloak and Nextcloud","I am trying to setup Keycloak as a IdP (Identity Provider) and Nextcloud as a service. I want to setup Keycloak as to present a SSO (single-sign-on) page.
+
+I am running a Linux-Server with a Intel compatible CPU. What is the correct configuration?
+
+- Keycloak will be running as `https://kc.example.com`
+- Nextcloud will be running as `https://nc.example.com`
+",48400813,"*Prerequisite:*
+
+To use this answer you will need to replace `example.com` with an **actual** domain you *own*. Also, replace `email@example.com` with your working e-mail address.
+
+It is assumed you have docker and docker-compose installed and running.
+
+# Setup your services with Docker
+In addition to keycloak and nextcloud I use:
+
+- **nginx** as a reverse-proxy
+- **letsencyrpt** to generate the SSL-certificates for the sub-domains.
+
+I'm setting up all the needed services with docker and docker-compose. This is how the `docker-compose.yml` looks like this:
+
+    version: '2'
+
+      nginx-proxy:
+        image: jwilder/nginx-proxy
+        restart: unless-stopped
+        ports:
+          - ""80:80""
+          - ""443:443""
+        volumes:
+          - ""/etc/nginx/vhost.d""
+          - ""./proxy-default.conf:/etc/nginx/conf.d/my-proxy.default.conf:ro""
+          - ""/usr/share/nginx/html""
+          - ""/var/run/docker.sock:/tmp/docker.sock:ro""
+          - ""./le-cert:/etc/nginx/certs:ro""
+        labels:
+          com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: ""true""
+
+      letsencrypt-nginx-proxy-companion:
+        image: jrcs/letsencrypt-nginx-proxy-companion
+        restart: unless-stopped
+        depends_on:
+          - nginx-proxy
+        container_name: le-proxy-companion
+        volumes:
+          - ""/var/run/docker.sock:/var/run/docker.sock:ro""
+          - ""./le-cert:/etc/nginx/certs:rw""
+        volumes_from:
+          - nginx-proxy
+
+      keycloak:
+        image: jboss/keycloak
+        links:
+          - keycloak-postgres:postgres
+        ports:
+          - 8080:8080
+        volumes:
+          - ./keycloak:/opt/jboss/keycloak
+        environment:
+          - KEYCLOAK_USER=admin
+          - KEYCLOAK_PASSWORD=admin
+          - ""PROXY_ADDRESS_FORWARDING=true""
+          - VIRTUAL_PORT=8080
+          - VIRTUAL_HOST=kc.example.com
+          - LETSENCRYPT_HOST=kc.example.com
+          - LETSENCRYPT_EMAIL=email@example.com
+
+      keycloak-postgres:
+        image: postgres
+        environment:
+          - POSTGRES_DB=keycloak
+          - POSTGRES_USER=keycloak
+          - POSTGRES_PASSWORD=keycloak
+
+      nextcloud:
+        image: hoellen/nextcloud
+        environment:
+          - UPLOAD_MAX_SIZE=10G
+          - APC_SHM_SIZE=128M
+          - OPCACHE_MEM_SIZE=128
+          - CRON_PERIOD=15m
+          - TZ=Europe/Berlin
+          - DOMAIN=nc.example.com
+          - ADMIN_USER=admin
+          - ADMIN_PASSWORD=admin
+          - DB_TYPE=mysql
+          - DB_NAME=nextcloud
+          - DB_USER=nextcloud
+          - DB_PASSWORD=nextcloud
+          - DB_HOST=nc-db
+        volumes:
+          - ./nc/nc-data:/data
+          - ./nc/nc-config:/config
+          - ./nc/nc-apps:/apps2
+          - ./nc/nc-themes:/nextcloud/themes
+        environment:
+          - VIRTUAL_HOST=nc.example.com
+          - LETSENCRYPT_HOST=nc.example.com
+          - LETSENCRYPT_EMAIL=email@example.com
+
+      nc-db:
+        image: mariadb
+        volumes:
+          - ./nc/nc-db:/var/lib/mysql
+        environment:
+          - MYSQL_ROOT_PASSWORD=nextcloud
+          - MYSQL_PASSWORD=nextcloud
+          - MYSQL_DATABASE=nextcloud
+          - MYSQL_USER=nextcloud
+
+I put my docker-files in a folder `docker` and within this folder a project-specific folder. Here `keycloak`. Create them with:
+
+    mkdir -p ~/docker/keycloak
+
+Create the `docker-compose.yml`-File with your preferred editor in this folder. Start the services with:
+
+    cd ~/docker/keycloak
+    docker-compose up -d
+
+Wait a moment to let the services download and start. Check if everything is running with:
+
+    docker-compose ps
+
+If a service isn't running. Issue a second `docker-compose up -d` and check again.
+
+# Configure Keycloak, add a new Realm
+
+Open a browser and go to `https://kc.example.com`. Click on *Administration Console*. As specified in your `docker-compose.yml`, Username and Password is `admin`.
+
+On the top-left of the page, you need to create a new *Realm*. Click `Add`. Enter *my-realm* as the name. Click `Save`.
+
+Click on the `Keys`-tab. Look at the `RSA`-entry. We will need to copy the Certificate of that line. Click on `Certificate` and copy-paste the content to a text editor for later use.
+
+# Prepare a Private Key and Certificate for Nextcloud
+
+Open a terminal and issue:
+
+    openssl req  -nodes -new -x509  -keyout private.key -out public.cert
+
+This creates two files: `private.key` and `public.cert` which we will need later for the nextcloud service.
+
+# Configure Nextcloud
+
+Open a browser and go to `https://nc.example.com`. As specified in your `docker-compose.yml`, Username and Password is `admin`.
+
+You need to activate the `SSO & Saml Authenticate` which is disabled by default.
+
+**Important** From here on **don't close** your *current* browser window until the setup is tested and running. If you close the browser before everything works you probably not be able to change your settings in nextcloud anymore. In such a case you will need to stop the nextcloud- and nextcloud-db-container, delete their respective folders, recreate them and start all over again.
+
+Click on the top-right gear-symbol and then on the `+ Apps`-sign. On the left now see a Menu-bar with the entry `Security`. Click it. You now see all security-related apps. Click on the `Activate` button below the `SSO & SAML authentication` App.
+
+Click on the top-right gear-symbol again and click on `Admin`. Click on `SSO & SAML authentication`.
+
+Use the following values:
+
+ - Attribute to map UID to: *username*
+ - Enable ""Use SAML auth for the Nextcloud desktop clients (requires user re-authentication)""
+ - Copy the content of `public.cert` into the 'X.509 Certificate'-field
+ - Copy the content of `private.key` into the 'Private key of Service Provider'-field.
+ - Identifier of the IdP: `https://kc.example.com/auth/realms/my-realm`
+ - URL Target of the IdP where the SP will send the Authentication Request Message: `https://kc.example.com/auth/realms/my-realm/protocol/saml`
+ - URL Location of IdP where the SP will send the SLO Request: `https://kc.example.com/auth/realms/my-realm/protocol/saml`
+ - Public X.509 certificate of the IdP: Copy the certificate from Keycloak from the `Keys`-tab of `my-realm`. You will need to add '-----BEGIN CERTIFICATE-----' in front of the key and '-----END CERTIFICATE-----' to the end of it.
+ - In-Service Provider Data:
+   - Attribute, displayname: *username*
+   - Attribute, email address: *email*
+ - Security Settings, *enable* the following options:
+   - Indicates whether the `<samlp:AuthnRequest>` messages sent by this SP will be signed. [Metadata of the SP will offer this info]
+   - Indicates whether the `<samlp:logoutRequest>` messages sent by this SP will be signed.
+   - Indicates whether the `<samlp:logoutResponse>` messages sent by this SP will be signed.
+   - Indicates a requirement for the `<samlp:Response>`, `<samlp:LogoutRequest>` and `<samlp:LogoutResponse>` elements received by this SP to be signed.
+   - Indicates a requirement for the `<saml:Assertion>` elements received by this SP to be signed. [Metadata of the SP will offer this info]
+ - Check there is a `Metadata valid` beside the `Download metadata XML`-Button
+[![This part of the configuration should look like this][1]][1]
+ - Click the `Download metadata XML`-Button. This generates and sends an XML file. Save it for use in the next step.
+
+# Configure Keycloak, Client
+
+Access the Administrator Console again. Click on `Clients` and on the top-right click on the `Create`-Button.
+
+Next to Import, click the `Select File`-Button. Select the XML-File you've created on the last step in Nextcloud.
+
+Change:
+
+- Client SAML Endpoint: `https://kc.example.com/auth/realms/my-realm`
+
+and click `Save`.
+
+You are presented with a new screen. Change the following fields:
+
+- Name: *Nextcloud*
+- Valid Redirect URIs: `https://nc.example.com/` *
+- Click `Save`
+
+On the Tab `Mappers`:
+
+- Click `Delete`-Button on the preassigned `role list` (if it exists)
+- Click `Create`
+  - Name: *username*
+  - Mapper Type: *User Property*
+  - Property: *username*
+  - SAML Attribute Name: *username*
+  - SAML Attribute NameFormat: *Basic*
+  - Click `Save`
+- Click `Create`
+  - Name: *email*
+  - Mapper Type: *User Property*
+  - Property: *email*
+  - SAML Attribute Name: *email*
+  - SAML Attribute NameFormat: *Basic*
+  - Click `Save`
+- Click `Create`
+  - Name: *Roles*
+  - Mapper Type: *Role List*
+  - Role attribute name: *Roles*
+  - Friendly Name: *roles*
+  - SAML Attribute NameFormat: Basic
+  - Single Role Attrubute: On
+  - Click `Save`
+
+# Configure Keycloak, Add user
+
+- On the left side, click on `Users`
+- On the top-right, click `Add users`
+- Set the following values:
+  - Username: *user*
+  - Email: `user@example.com`
+  - Click `Save`
+- On the tab `Credentials`:
+  - New Password: *user*
+  - Password Confirmation: *user*
+  - Temporary: *Off*
+  - Click `Reset Password`
+- A Window pops up:
+  - Click `Change Password`
+
+# Test run
+
+Open a new browser window in incognito/private mode. Eg. for google-chrome press `Ctrl-Shift-N`, in Firefox press `Ctrl-Shift-P`. **Keep** the other browser window with the nextcloud setup page **open**. Else you might lock yourself out.
+
+Access `https://nc.example.com` with the incognito/private browser window. You are presented with the keycloak username/password page. Enter `user` as a name and password. You should be greeted with the nextcloud welcome screen.
+
+# Acknowledgement
+
+- This guide wouldn't have been possible without the wonderful http://int128.hatenablog.com/entry/2018/01/16/194048 blog entry. I've read it with [google-translator](https://translate.google.com/translate?hl=en&sl=auto&tl=en&u=http%3A%2F%2Fint128.hatenablog.com%2Fentry%2F2018%2F01%2F16%2F194048) in English.
+- Thanks goes also to [RMM][2]. His [wiki entry](https://rmm.li/wiki/doku.php?id=linux_server_manuals:nextcloud_saml_authentication_against_keycloak) allowed me to create correct keys for nextcloud and enable message-signing, thus improving this answer.
+
+  [1]: https://i.stack.imgur.com/vT3f3.png
+  [2]: https://stackoverflow.com/users/3048796/rmm"
+48507224,Cant access keycloak rest API methods *404*,"I am using the latest keycloak image in docker and can access the standard admin console at http://localhost:9080. However, I cant seem to access any of the paths specified in the [documentation][1] for Admin REST api. For instance, the base path */auth* and Resource *Get clients belonging to the realm Returns a list of clients belonging to the realm:* **/{realm}/clients** I am getting a 404. So is for any other method in the [documentation][1]. The only path returning a valid 200 json response is *http://localhost:9080/auth/realms/{realm-name}/* which according to the documentation be reachable at basepath + ""/{realm-name}"". Am I missing something or trying to access with a wrong base path. The keycloak version in docker is 3.4.3.Final which is the latest version of keycloak according to the documentation.
+
+  [1]: http://www.keycloak.org/docs-api/3.4/rest-api/index.html",48519311,"I'm almost sure you are trying to call the endpoint like this:
+
+> http://localhost:9080/auth/admin/realms/demo/clients
+
+However, you've missed this part`/auth/admin/realms`
+
+Please, don't forget to authorize your call first as stated [here][1]
+
+**UPDATE**
+
+Here are my steps to see the results:
+
+    $ docker run -d -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin jboss/keycloak
+
+Getting `access_token`:
+
+    $ curl -X POST \
+        -H 'Content-Type: application/x-www-form-urlencoded' \
+        -d 'username=admin&password=admin&client_id=admin-cli&grant_type=password' \
+        http://localhost:9080/auth/realms/master/protocol/openid-connect/token  
+
+*EDIT:* With keycloak 17.0+ the `/auth` path segment should be omitted, so the correct URL is `http://localhost:9080/realms/master/protocol/openid-connect/token`
+Reference: https://stackoverflow.com/a/71634718/3692110
+
+Copy and paste obtained `access_token` to `Authorization` header:
+
+    $ curl -X GET \
+        -H 'Authorization: Bearer <access_token_goes_here>' \
+        http://localhost:9080/auth/admin/realms/master/clients
+        
+
+
+  [1]: https://stackoverflow.com/a/35345291/4956989"
+53283281,How to activate the REST API of keycloak?,"I have installed keycloack server 4.3.4.
+How to activate the REST API of keycloak (Add a user, enabled  user, disabled a user ...) ?
+
+Regards",53292944,"First step to do that is create an admin account (which you would have been prompted to do as soon as you would have opened [{keycloak-url}/auth][1] ).
+
+Next steps depend on how you want to create config. Through Admin console GUI or through Rest API.
+
+Steps to do this through Admin Rest API.
+----------------------------------------
+
+1. First , you will have to get a token from [{keycloak-url}/auth/realms/master/protocol/openid-connect/token][2] like this: 
+
+Note that only change you have to do in below call is your keycloak server address and value of admin username and password.
+
+[![enter image description here][3]][3]
+
+
+2. Once you obtain a token from above call, you can use it on other [Admin Rest API][4] calls by setting `Authorization` header, with `Bearer token_value`. (replace token_value with one obtained in step 1 above)
+
+(Sharing an example below of sample rest call which gets list of users - https://www.keycloak.org/docs-api/10.0/rest-api/index.html#_users_resource )
+
+
+{{SERVER}}/auth/admin/realms/myRealm/users
+
+
+------------------------------------------
+
+[![enter image description here][5]][5]
+
+
+----------
+
+EDIT:
+-----
+
+**As pointed out by @Shane : as of Keycloak version 19.0.1 the `/auth` part of the urls have been removed.** 
+
+  [1]: http://keycloak-server-url/auth
+  [2]: http://your_keycloak_server/auth/realms/master/protocol/openid-connect/token
+  [3]: https://i.stack.imgur.com/6TKPf.png
+  [4]: https://www.keycloak.org/docs-api/4.5/rest-api/index.html#_realms_admin_resource
+  [5]: https://i.stack.imgur.com/oUbMa.png"
+49313554,Access the keycloak API from postman,"I have tried to access the keycloak API from the postman. but it is showing 400 bad request.
+
+I was calling api in the below format. 
+
+    http://{hostname}:8080/auth/realms/master/protocol/openid-connect/token?username=admin&password=admin&client_id=admin-cli&grant_type=password
+
+In the headers I have set the `content_type as application/x-www-form-urlencoded`
+
+
+I am getting the response as below.
+
+    {
+        ""error"": ""invalid_request"",
+        ""error_description"": ""Missing form parameter: grant_type""
+    }
+
+Can any one help me.Any help will be appreciated. thanks in advance",49382250,"A bit late for this question, but you did ask about postman and not curl.
+So you have to put the options in x-www-form-urlencoded
+[![enter image description here][1]][1]
+
+
+  [1]: https://i.stack.imgur.com/5aFgH.png"
+50589548,"Keycloak cookies : KEYCLOAK_SESSION,Oauth_token_request_state, KEYCLOAK_IDENTITY","Can someone please explain the cookies set by Keycloak:
+KEYCLOAK_SESSION,Oauth_token_request_state, KEYCLOAK_IDENTITY.
+
+What is the relevance of each cookies?",50840122,"They are cookies for internal use of Keycloak.
+
+**KEYCLOAK_IDENTITY** contains a token (JWT) with the user ids. You can view its content using [jwt.io][1] (for example). This cookie lives with your browser session and can also be refreshed with SSO. (for example, if you change some of your personal data in the ""Manage my account"")
+
+**KEYCLOAK_SESSION** your session id associated to the concerned realm.
+
+**Oauth_token_request_state** is part of the Oauth spec in order to avoid hacking of the redirect link after login
+
+
+  [1]: https://jwt.io"
+49144953,Mocking a Keycloak token for testing a Spring controller,"I want to write unit tests for my spring controller. I'm using keycloak's openid flow to secure my endpoints.
+
+In my tests I'm using the `@WithMockUser` annotation to mock an authenticated user. My problem is that I'm reading the userId from the token of the principal. My unit test now fails because the `userId` I read from the token is null;
+
+
+			if (principal instanceof KeycloakAuthenticationToken) {
+				KeycloakAuthenticationToken authenticationToken = (KeycloakAuthenticationToken) principal;
+				SimpleKeycloakAccount account = (SimpleKeycloakAccount) authenticationToken.getDetails();
+				RefreshableKeycloakSecurityContext keycloakSecurityContext = account.getKeycloakSecurityContext();
+				AccessToken token = keycloakSecurityContext.getToken();
+				Map<String, Object> otherClaims = token.getOtherClaims();
+				userId = otherClaims.get(""userId"").toString();
+			}
+
+Is there anything to easily mock the `KeycloakAuthenticationToken`?",60175790,"`@WithmockUser` configures the security-context with a `UsernamePasswordAuthenticationToken`. This can be just fine for most use-cases but when your app relies on another Authentication implementation (like your code does), you have to build or mock an instance of the right type and put it in the test security-context: `SecurityContextHolder.getContext().setAuthentication(authentication);`
+
+Of course, you'll soon want to automate this, building your own annotation or `RequestPostProcessor`
+
+... or ...
+
+take one ""off the shelf"", like in this [lib of mine][1], which is available from maven-central:
+```xml
+<dependency>
+    <!-- just enough for @WithMockKeycloackAuth -->
+    <groupId>com.c4-soft.springaddons</groupId>
+    <artifactId>spring-security-oauth2-test-addons</artifactId>
+    <version>3.0.1</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <!-- required only for WebMvc ""fluent"" API -->
+    <groupId>com.c4-soft.springaddons</groupId>
+    <artifactId>spring-security-oauth2-test-webmvc-addons</artifactId>
+    <version>3.0.1</version>
+    <scope>test</scope>
+</dependency>
+```
+
+You can use it either with `@WithMockKeycloackAuth` annotations:
+```java
+@RunWith(SpringRunner.class)
+@WebMvcTest(GreetingController.class)
+@ContextConfiguration(classes = GreetingApp.class)
+@ComponentScan(basePackageClasses = { KeycloakSecurityComponents.class, KeycloakSpringBootConfigResolver.class })
+public class GreetingControllerTests extends ServletUnitTestingSupport {
+	@MockBean
+	MessageService messageService;
+
+	@Test
+	@WithMockKeycloackAuth(""TESTER"")
+	public void whenUserIsNotGrantedWithAuthorizedPersonelThenSecretRouteIsNotAccessible() throws Exception {
+		mockMvc().get(""/secured-route"").andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockKeycloackAuth(""AUTHORIZED_PERSONNEL"")
+	public void whenUserIsGrantedWithAuthorizedPersonelThenSecretRouteIsAccessible() throws Exception {
+		mockMvc().get(""/secured-route"").andExpect(content().string(is(""secret route"")));
+	}
+
+	@Test
+	@WithMockKeycloakAuth(
+			authorities = { ""USER"", ""AUTHORIZED_PERSONNEL"" },
+			claims = @OpenIdClaims(
+					sub = ""42"",
+					email = ""ch4mp@c4-soft.com"",
+					emailVerified = true,
+					nickName = ""Tonton-Pirate"",
+					preferredUsername = ""ch4mpy"",
+					otherClaims = @Claims(stringClaims = @StringClaim(name = ""foo"", value = ""bar""))))
+	public void whenAuthenticatedWithKeycloakAuthenticationTokenThenCanGreet() throws Exception {
+		mockMvc().get(""/greet"")
+				.andExpect(status().isOk())
+				.andExpect(content().string(startsWith(""Hello ch4mpy! You are granted with "")))
+				.andExpect(content().string(containsString(""AUTHORIZED_PERSONNEL"")))
+				.andExpect(content().string(containsString(""USER"")));
+	}
+```
+
+Or MockMvc fluent API (RequestPostProcessor):
+```java
+@RunWith(SpringRunner.class)
+@WebMvcTest(GreetingController.class)
+@ContextConfiguration(classes = GreetingApp.class)
+@ComponentScan(basePackageClasses = { KeycloakSecurityComponents.class, KeycloakSpringBootConfigResolver.class })
+public class GreetingControllerTest extends ServletKeycloakAuthUnitTestingSupport {
+	@MockBean
+	MessageService messageService;
+
+	@Test
+	public void whenUserIsNotGrantedWithAuthorizedPersonelThenSecretMethodIsNotAccessible() throws Exception {
+		mockMvc().with(authentication().roles(""TESTER"")).get(""/secured-method"").andExpect(status().isForbidden());
+	}
+
+	@Test
+	public void whenUserIsGrantedWithAuthorizedPersonelThenSecretMethodIsAccessible() throws Exception {
+		mockMvc().with(authentication().roles(""AUTHORIZED_PERSONNEL"")).get(""/secured-method"")
+				.andExpect(content().string(is(""secret method"")));
+	}
+
+}
+```
+
+
+  [1]: https://github.com/ch4mpy/spring-addons"
+38337895,Globally disable https keycloak,"The deployment is on AWS and I do not want to tunnel to the box and open a browser to disable it.  
+
+There seems to exist a configuration: `""ssl-required"":""none""` that can be placed in the `keycloak-server.json` file, but I'm not sure under which object.  I've tried under ""realm"" and by itself with no luck.  
+
+I do not want to disable it at the adapter level, it needs to be globally, so where does the `""ssl-required"":""none""` go, or how can ssh/https be disabled globally?
+
+(Also, I understand this is not recommended in production.)
+",39129777,"In the ""master"" realm, over login tab. Change 'Require SSL' property to none.
+
+[][1]
+
+
+  [1]: http://i.stack.imgur.com/M0LOI.png
+
+If you can not access locally to keycloak and it is configured with a database for instance Postgres, then execute the following SQL sentence.
+
+    update REALM set ssl_required = 'NONE' where id = 'master';
+
+It is necessary to restart keycloak
+"
+31864062,Fetch Logged In Username in a webapp secured with Keycloak,"I have secured an enterprise application with Keycloak using standard wildfly based Keycloak adapters. Issue that I am facing is that the rest web services when invoked, needs to know the username that is currently logged in. How do I get the logged in user information from Keycloak?
+
+I tried using `SecurityContext` , `WebListener` etc. But none of them are able to give me the required details.",31870310,"You get all user information from the security context.
+
+Example:
+
+    public class Greeter {
+
+      @Context
+      SecurityContext sc;
+
+      @GET
+      @Produces(MediaType.APPLICATION_JSON)
+      public String sayHello() {
+
+        // this will set the user id as userName
+        String userName = sc.getUserPrincipal().getName();
+
+        if (sc.getUserPrincipal() instanceof KeycloakPrincipal) {
+          KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>)  sc.getUserPrincipal();
+
+          // this is how to get the real userName (or rather the login name)
+          userName = kp.getKeycloakSecurityContext().getIdToken().getPreferredUsername();
+        }
+
+        return ""{ message : \""Hello "" + userName + ""\"" }"";
+    }
+
+For the security context to be propagated you have to have a security domain configured as described in the:
+[JBoss/Wildfly Adapter configuration][1]
+
+
+  [1]: http://keycloak.github.io/docs/userguide/html/ch08.html#jboss-adapter"
+48458138,Keycloak User Roles missing in REST API,"I would like to ask, if somebody knows, why there are **no roles** within the user details in REST ADMIN API request. I saw some posts dealing with this topic, but there were either no clear answer or they propose to use keycloak-admin-client, but that seems not very convenient. Maybe I need to map the roles in Admin console or use claims? Roles are one of the most important user attribute so whats the reason they are not retrieved as other user attributes?Any suggestion? Thanks
+
+    GET /auth/admin/realms/{realm}/users 
+
+    {
+      ""id"": ""efa7e6c0-139f-44d8-baa8-10822ed2a9c1"",
+      ""createdTimestamp"": 1516707328588,
+      ""username"": ""testuser"",
+      ""enabled"": true,
+      ""totp"": false,
+      ""emailVerified"": false,
+      ""firstName"": ""Test"",
+      ""lastName"": ""User"",
+      ""email"": ""test@xxx.com"",
+      ""attributes"": {""xxx"": [""123456""]},
+      ""disableableCredentialTypes"": [""password""],
+      ""requiredActions"": []
+    }
+",48485431,"You are not getting roles in the user details because the REST API is strictly resource based and roles are separate objects that are just associated to a user. The following REST URLs can be used to get a user's roles  
+Getting the associated realm roles:  
+``GET /auth/admin/realms/{realm}/users/{user-uuid}/role-mappings/realm``  
+Getting the associated role of a specific client:   
+``GET /auth/admin/realms/{realm}/users/{user-uuid}/role-mappings/clients/{client-uuid}``"
+49107701,Keycloak client vs user,"I understand that keycloak has built-in clients and we add the users later on.
+
+But in general, **what is the difference between a client and a user in Keycloak?**",49119016,"In short words, not only for keycloak but for OAuth and OpenId Connect too, a client represents a resource which some users can access. The built-in clients for keycloak represent some resources for keycloak itself."
+51132711,Introspection Endpoint of KeyCloak server,"I am trying to explore features of KeyCloak server and want to get information about access token by using `/openid-connect/token/introspect` endpoint. 
+
+So, I am sending next request to this endpoint 
+
+    curl -v --data ""token_type_hint=access_token&client_id=product- 
+    app&username=user&token=MY ACCESS TOKEN"" 
+    http://localhost:8080/auth/realms/springdemo/protocol/openid- 
+    connect/token/introspect
+
+So this is what I have as a response:
+
+    {""error"":""invalid_request"",""error_description"":""Client not allowed.""}* 
+    Connection #0 to host localhost left intact
+
+and this is what I see in KeyCloak's logs: 
+
+    12:00:18,045 WARN  [org.keycloak.events] (default task-13) 
+    type=INTROSPECT_TOKEN                                     _ERROR, 
+    realmId=springdemo, clientId=product-app, userId=null, ipAddress=127.0.0                                     
+    .1, error=invalid_request, detail='Client not allowed.', 
+    client_auth_method=client-secret
+
+So, I can't get it - how should I properly make request to keycloak in this case regarding that product-app has public access. Please, explain! 
+
+",51134543,"It seems like you are not able to use `/openid-connect/token/introspect` endpoint when your client has public access type.
+
+So, switch to the CONFIDENTIAL ACCESS TYPE and use
+
+    curl -v --data ""client_secret=YOUR_SECRET9&client_id=product- 
+    app&username=user&token=YOUR_TOKEN"" 
+    http://localhost:8080/auth/realms/springdemo/protocol/openid- 
+    connect/token/introspect
+
+It works fine. "
+52085735,Programmatically authenticate user with Keycloak in java,"I have been looking through the Keycloak documentation but cannot see how to do this. With Java, I'd like to take a valid userid and password and then generate a token. How can I do this? ",52105959,"--EDIT 2018-08-31--
+
+You can use the [Authorization Client Java API](https://www.keycloak.org/docs/latest/authorization_services/index.html#_service_client_api). Once you have created an AuthzClient object, you can pass the username and password to the [AuthzClient#authorization(username, password)][1] or [AuthzClient#obtainAccessToken(username, password)](http://static.javadoc.io/org.keycloak/keycloak-authz-client/4.3.0.Final/org/keycloak/authorization/client/AuthzClient.html#obtainAccessToken--) method to authenticate the user and get the access token (and/or ID token in the first case):
+
+    // create a new instance based on the configuration defined in keycloak-authz.json
+    AuthzClient authzClient = AuthzClient.create();
+    
+    // send the authorization request to the server in order to
+    // obtain an access token granted to the user
+    AccessTokenResponse response = authzClient.obtainAccessToken(""alice"", ""alice"");
+
+
+On a side note, if possible, you'd rather reuse one of the [Keycloak Java Adapters](https://www.keycloak.org/docs/latest/securing_apps/index.html#openid-connect-3) to cover more features, such as other authentication methods (the user is typically redirected to Keycloack WUI where you can enforce very flexible authentication and authorization policies).
+
+  [1]: http://static.javadoc.io/org.keycloak/keycloak-authz-client/4.3.0.Final/org/keycloak/authorization/client/AuthzClient.html#authorization-java.lang.String-java.lang.String-"
+42342367,Keycloak behind apache reverse proxy,"I have surfed through google without finding any **concrete** answers or **examples**, so again trying my luck here (often get lucky).
+
+**The problem**
+
+ - I have a single spring boot RESTful service running behind an apache
+   reverse proxy. This RESTful service is running HTTP only. Say it's running on
+   local ip 172.s port 8080.
+   
+ - I have also configured an apache reverse proxy. Say it's running on
+   local ip 172.a and public ip 55.a. This proxy responds to both port 80, but all the HTTP traffic is automatically redirected to 443.
+   
+ - I have another server running a standalone Keycloak server. Also
+   this server is configured to be public accessible through the
+   reverse proxy. Say it's running on local ip 172.k. This Keycloak server is running on HTTP-only. The HTTP requests are handled using SSL over the reverse proxy.
+
+ - Last, I have another frontend-webapp running on local ip 172.f. This frontend-webapp is running under Nodejs, and is also configured through the reverse proxy. It's also running only HTTP, but client(browser) is using SSL through the reverse proxy, just as for the Keycloak and RESTful service. This frontend is consuming the RESTful service, and is also configured to authenticate using the keycloak javascript adapter.
+
+ - The RESTful service is configured as bearer-only using Spring Boot Keycloak adapter, while the frontend app is configured with access type public.
+
+
+The RESTful service server, Keycloak server, and the frontend server are not public accessible; they are accessible only through the reverse proxy. But they can communicate with each other (since they are in the same private network).
+
+In the frontend keycloak.json file, the `auth-server-url` is set to the proxy url `https://example.com/auth`, and the frontend is able to successfully get a valid token. Now when I try to consume the RESTful service, I get a error in RESTful adapter that the token issuer is invalid. In the http-header I am, of course, sending the `Authorization: Bearer <token>`. The reason I am getting this error is that in RESTful keycloak configuation, I have configured the `auth-server-url` to use the local url `http://172.k:9080/auth`, so this url is different from the one in the token (which is `https://example.com/auth`).
+
+**Question**
+
+I cannot include the same `auth-server-url` in the RESTful service as for the frontend, because that will require me to also setup HTTPs on the RESTful service (because that url is https), and that will complicate stuff a lot, including the need to setup certificates and stuff like that. Also I think it's inefficient and not practical to setup SSL on local only servers.
+
+So my question is how I can make the adapter talk to the Keycloak without going through the reverse proxy. I want the RESTful adapter to talk to the Keyclok server for token verification through `auth-server-url: http://172.k:9080/auth`.
+
+Earlier there was a different url for backend, that got removed: https://issues.jboss.org/browse/KEYCLOAK-2623",42504805,"I tried different things, but could not solve the problem. To me it seems like there is not way to specify `auth-server-url: http://172.k:9080/auth` in the backend adapter while the frontend adapter is putting `auth-server-url:https://example.com/auth` in the token. So my solution was to configure all the backend services to also the `auth-server-url: https://example.com/auth`. 
+
+The only disadvantage of this is that my backend service adapter communicates with keycloak over web, which probably is not so good performance wise, but at least everything works as it should. It should have been possible to somehow specify a local keycloak endpoint within the same local network, or the same VPN in AWS."
+54318633,Getting Keycloak's public key,"I realized there are many iterations of this questions.  But I can't seem to understand the answer correctly.  
+
+We have secured our rabbitmq and rest endpoints with a oauth2 spring server [similar to this post][1].  But it doesn't have all of the features we need and want.  So we would like to use Keycloak.  I have been successful with securing the rest endpoint by just going to the new version of spring security 5.1 and specifing the security.oauth2.resource.jwk.key-set-uri and setting the necessary dependencies and configuration. 
+
+While trying to secure the RabbitMQ, I have been running into problems checking the bearer token from the message header because the keycloak jwks endpoint isn't returning the true RSA public key.
+
+RabbitMQ uses the [CustomMessageListenerContainer][1] to get the token from the message header and uses the DefaultTokenServices to check the token.  
+
+
+From my understanding,  the endpoint that responds with the key is https://keycloak-server/auth/realms/my-realm/protocol/openid-connect/certs
+Doing a HttpGet on this endpoint, I get a response that looks like the following 
+
+
+    {
+    	""keys"": [{
+    			""kid"": ""7JUbcl_96GNk2zNh4MAORuEz3YBuprXilmTXjm0gmRE"",
+    			""kty"": ""RSA"",
+    			""alg"": ""RS256"",
+    			""use"": ""sig"",
+    			""n"": ""nE9gEtzZvV_XisnAY8Hung399hwBM_eykZ9J57euboEsKra8JvDmE6w7SSrk-aTVjdNpjdzOyrFd4V7tFqev1vVJu8MJGIyQlbPv07MTsgYE5EPM4DxdQ7H6_f3vQjq0hznkFvC-hyCqUhxPTXM5NgvH86OekL2C170xnd50RLWw8FbrprP2oRjgBnXMAif1Dd8kwbKKgf5m3Ou0yTVGfsCRG1_LSj6gIEFglxNHvGz0RejoQql0rGMxcW3MzCvc-inF3FCafQTrG5eWHqp5xXEeMHz0JosQ7BcT8MVp9lHT_utiazhQ1uKZEb4uoYOyy6mDDkx-wExpZkOx76bk_Yu-N25ljY18hNllnV_8gVMkX46_vcc-eN3DRZGNJ-Asd_sZrjbXbAvBbKwVxZeOTaXiUdvl8O0G5xX2xPnS_WA_1U4b_V1t28WtnX4bqGlOejW2kkjLvNrpfQ5fnvLjkl9I2B16Mbh9nS0LJD0RR-AkBsv3rKEnMyEkW9UsfgYKLFKuH32x_CXi9uyvNDas_q8WS3QvYwAGEMRO_4uICDAqupCVb1Jcs9dvd1w-tUfj5MQOXB-srnQYf5DbFENTNM1PK390dIjdLJh4k2efCJ21I1kYw2Qr9lHI4X2peTinViaoOykykJiol6LMujUcfqaZ1qPKDy_UnpAwGg9NyFU"",
+    			""e"": ""AQAB""
+    		}
+    	]
+    }
+
+From my understanding,  the field with key ""n"" is supposed to be an RSA256 key.  Adding it to a RSAVerifier eventually gets an error of ""Caused by: org.springframework.security.jwt.codec.InvalidBase64CharacterException: Bad Base64 input character decimal 95 in array position 2.""
+
+However,  if I login to keycloak admin page and go into the realm settings-> keys and click the public key, a popup shows the public key minus the ""-----BEGIN PUBLIC KEY-----"" and ""-----END PUBLIC KEY-----"" headers and footers.  Hard coding this enables everything to work.  
+
+Is the key encoded?
+I've tried doing a Base64Utils.decodeFromUrlSafeString and a Base64Utils.decodeFromString. The first returning something smaller and doesn't lool like the key and the later creating an Illegal argument exception Illegal base64 character 5f.  
+
+Update:
+The n being returned is the modulous and e is the public exponent of the public key.  But how does one get the actual key string?
+
+
+  [1]: https://stackoverflow.com/questions/50358936/oauth2-authorization-with-spring-security-and-rabbitmq",54327623,"The keys are also directly on https://keycloak-server/auth/realms/my-realm, in a format directly exploitable with your code:
+
+    {
+      ""realm"": ""my-realm"",
+      ""public_key"": ""MIIBI..."",
+      ""token-service"": ""https://keycloak-server/auth/realms/my-realm/protocol/openid-connect"",
+      ""account-service"": ""https://keycloak-server/auth/realms/my-realm/account"",
+      ""tokens-not-before"": 0
+    }"
+54667407,How to get users by custom attributes in keycloak?,"I know that there is admin APIs to get the list of users which returns the user representation array. 
+
+    GET /admin/realms/{realm}/groups/{id}/members
+
+returns 
+
+    https://www.keycloak.org/docs-api/2.5/rest-api/index.html#_userrepresentation
+
+but is there a way to get users by custom attribute ? ",54667967,"Current Keycloak API version is 4.8 and there is API: 
+*Get users Returns a list of users, filtered according to query parameters*
+
+    GET /{realm}/users
+
+See doc: https://www.keycloak.org/docs-api/4.8/rest-api/index.html#_users_resource
+
+Only this ""search"" is available from the API. If you need search by user attributes, then you need to implement it in your own code."
+47121643,Keycloak - Is it possible share a common set of users between realms?,"I am trying  to implement keycloak as an SSO for my company. I have created two realms, realm A and realm B. I want to use same set of users for both realms ie I need give access to users for both realms. Is it possible to do this in Keycloak?",47130733,"No that's not possible. Users are always realm specific. The only way would be to keep the users in an external store and integrate this external store via federation (_UserStorageSpi_) into both realms. But then you'll have to do all user management on the external store, as it is the primary source of your user data."
+46882610,Keycloak API always returns 401,"I'm trying to interact with Keycloak via its REST API. I have the master realm and the default admin user, and a test realm. Firstly, I get an access token for the admin account and test realm:
+
+    let data = {
+        grant_type : 'password',
+        client_id : 'test-realm',
+        username : 'admin',
+        password : 'admin'
+    };
+    let headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    axios.post(
+        'https://someurl.com:8080/auth/realms/master/protocol/openid-connect/token',
+        qs.stringify(data),
+        headers
+    )
+
+That works ok. Then I try to make a call to create a user (or do anything else) and I get a 401 unauthorized error:
+
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${accessToken}`
+    };
+    data = {
+        rep: {
+            email: ""test@email.com"",
+            username: ""test@email.com""
+        },
+        path: 'test-realm'
+    };
+    axios.post('https://someurl.com:8080/auth/admin/realms/test-realm/users',
+        qs.stringify(data),
+        headers
+    )
+
+Is that not the correct way to include the token? Is the access token the one you use for authenticating other API calls? Shouldn't the admin account's token work for authenticating calls to other clients with the master realm? Would it be some setting in the master realm that I have to change in the admin console? Any help appreciated.",46920592,"> Is that not the correct way to include the token?
+
+This is a correct way.
+
+You just do something incorrectly.
+Please, refer for an example from `keycloak-request-token` Node.js module:
+
+https://github.com/keycloak/keycloak-request-token/blob/master/index.js#L43
+
+You use 
+
+    client_id : 'test-realm'
+
+but there is 
+
+    client_id: 'admin-cli' 
+
+there.
+
+Also, to create a user, you should use
+
+    'Content-Type': 'application/json'
+
+You can refer for Node.js examples of Keycloak REST API here:
+
+https://github.com/v-ladynev/keycloak-nodejs-example/blob/master/lib/adminClient.js
+
+Examples of other useful stuff like: 
+
+ - custom login
+ - storing Keycloak token in the cookies
+ - centralized permission middleware
+
+can be found in the same project: [keycloak-nodejs-example](https://github.com/v-ladynev/keycloak-nodejs-example)"
+41855394,Localization of custom keycloak login theme,"I am implementing a custom login page for keycloak (version 2.5), by following [this][1] guide. I added my own custom styling, now I am trying to add the Dutch locale. Currently no Dutch locale is provided, so I provided following properties files:
+
+ - `themes/mytheme/login/messages/messages_en.properties`
+ - `themes/mytheme/account/messages/messages_en.properties`
+ - `themes/mytheme/email/messages/messages_en.properties`
+
+with the `locale_nl=Nederlands` property. After that I added the `messages_nl.properties` files with the translation strings. 
+
+Next I added the `locales=en,nl,de` property to following files:
+
+ - `themes/mytheme/login/messages/theme.properties`
+ - `themes/mytheme/account/messages/theme.properties`
+ - `themes/mytheme/email/messages/theme.properties`
+
+There is only one thing left to do: add the Dutch locale in the admin console. But I can't select the `NL` locale after I enabled internationalization. I can only select the English and German locale, my just created Dutch locale is not available:
+
+[![enter image description here][2]][2]
+
+According to [Multilingual support and adding custom Locales in Keycloak][3], I should be able to add my own locale by just typing the locale and hitting 'enter', but that does not do anything.
+
+I am missing a step here?
+
+
+  [1]: https://keycloak.gitbooks.io/server-developer-guide/content/topics/themes.html
+  [2]: https://i.stack.imgur.com/Y5Fvp.png
+  [3]: http://metalop.com/2015/06/11/multilingual-support-and-adding-custom-locales-in-keycloak-1-2-0/",41872648,"After reading the [code][1], I understood only adding the files is not enough. You need to enable your theme not only for the `login` theme, but also for the `account` and `email` themes:
+
+[![enter image description here][2]][2]
+
+As I only changed the `login` theme to my own 'custom-theme', the Dutch locale did not show up.
+
+  [1]: https://github.com/stianst/keycloak/blob/b94f207c5c9e08d13c9fd743e407b53c91da3e7a/themes/src/main/resources/theme/base/admin/resources/js/controllers/realm.js#L353
+  [2]: https://i.stack.imgur.com/qEqI7.png"
+37786756,"keycloak error : Unrecognized field ""access_token""","I'm using keycloak to secure my rest API, I followed this [tutorial][1] to PROGRAMMATICALLY ADDING USERS, but I get that error message: 
+
+
+    ERROR [io.undertow.request] (default task-9) UT005023: Exception handling request to /service/secured: org.jboss.resteasy.spi.UnhandledException: javax.ws.rs.client.ResponseProcessingException: javax.ws.rs.ProcessingException: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field ""access_token"" (class org.keycloak.representations.AccessTokenResponse), not marked as ignorable (9 known properties: ""notBeforePolicy"", ""otherClaims"", ""tokenType"", ""token"", ""expiresIn"", ""sessionState"", ""refreshExpiresIn"", ""idToken"", ""refreshToken""])
+     at [Source: org.apache.http.conn.EofSensorInputStream@9d6aba2; line: 1, column: 18] (through reference chain: org.keycloak.representations.AccessTokenResponse[""access_token""])
+    	at org.jboss.resteasy.core.ExceptionHandler.handleApplicationException(ExceptionHandler.java:76)
+    	at org.jboss.resteasy.core.ExceptionHandler.handleException(ExceptionHandler.java:212)
+    	at org.jboss.resteasy.core.SynchronousDispatcher.writeException(SynchronousDispatcher.java:149)
+    	at org.jboss.resteasy.core.SynchronousDispatcher.invoke(SynchronousDispatcher.java:372)
+    	at org.jboss.resteasy.core.SynchronousDispatcher.invoke(SynchronousDispatcher.java:179)
+    	at org.jboss.resteasy.plugins.server.servlet.ServletContainerDispatcher.service(ServletContainerDispatcher.java:220)
+    	at org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher.service(HttpServletDispatcher.java:56)
+    	at org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher.service(HttpServletDispatcher.java:51)
+    	at javax.servlet.http.HttpServlet.service(HttpServlet.java:790)
+    	at io.undertow.servlet.handlers.ServletHandler.handleRequest(ServletHandler.java:86)
+    	at io.undertow.servlet.handlers.security.ServletSecurityRoleHandler.handleRequest(ServletSecurityRoleHandler.java:62)
+    	at io.undertow.servlet.handlers.ServletDispatchingHandler.handleRequest(ServletDispatchingHandler.java:36)
+    	at org.wildfly.extension.undertow.security.SecurityContextAssociationHandler.handleRequest(SecurityContextAssociationHandler.java:78)
+    	at io.undertow.server.handlers.PredicateHandler.handleRequest(PredicateHandler.java:43)
+    	at org.keycloak.adapters.undertow.UndertowAuthenticatedActionsHandler.handleRequest(UndertowAuthenticatedActionsHandler.java:66)
+    	at io.undertow.servlet.handlers.security.SSLInformationAssociationHandler.handleRequest(SSLInformationAssociationHandler.java:131)
+    	at io.undertow.servlet.handlers.security.ServletAuthenticationCallHandler.handleRequest(ServletAuthenticationCallHandler.java:57)
+    	at io.undertow.server.handlers.DisableCacheHandler.handleRequest(DisableCacheHandler.java:33)
+    	at io.undertow.server.handlers.PredicateHandler.handleRequest(PredicateHandler.java:43)
+    	at io.undertow.security.handlers.AuthenticationConstraintHandler.handleRequest(AuthenticationConstraintHandler.java:51)
+    	at io.undertow.security.handlers.AbstractConfidentialityHandler.handleRequest(AbstractConfidentialityHandler.java:46)
+    	at io.undertow.servlet.handlers.security.ServletConfidentialityConstraintHandler.handleRequest(ServletConfidentialityConstraintHandler.java:64)
+    	at io.undertow.servlet.handlers.security.ServletSecurityConstraintHandler.handleRequest(ServletSecurityConstraintHandler.java:56)
+    	at io.undertow.security.handlers.AuthenticationMechanismsHandler.handleRequest(AuthenticationMechanismsHandler.java:58)
+    	at io.undertow.servlet.handlers.security.CachedAuthenticatedSessionHandler.handleRequest(CachedAuthenticatedSessionHandler.java:72)
+    	at io.undertow.security.handlers.NotificationReceiverHandler.handleRequest(NotificationReceiverHandler.java:50)
+    	at io.undertow.security.handlers.SecurityInitialHandler.handleRequest(SecurityInitialHandler.java:76)
+    	at io.undertow.server.handlers.PredicateHandler.handleRequest(PredicateHandler.java:43)
+    	at org.wildfly.extension.undertow.security.jacc.JACCContextIdHandler.handleRequest(JACCContextIdHandler.java:61)
+    	at io.undertow.server.handlers.PredicateHandler.handleRequest(PredicateHandler.java:43)
+    	at org.keycloak.adapters.undertow.ServletPreAuthActionsHandler.handleRequest(ServletPreAuthActionsHandler.java:69)
+    	at io.undertow.server.handlers.PredicateHandler.handleRequest(PredicateHandler.java:43)
+    	at io.undertow.servlet.handlers.ServletInitialHandler.handleFirstRequest(ServletInitialHandler.java:282)
+    	at io.undertow.servlet.handlers.ServletInitialHandler.dispatchRequest(ServletInitialHandler.java:261)
+    	at io.undertow.servlet.handlers.ServletInitialHandler.access$000(ServletInitialHandler.java:80)
+    	at io.undertow.servlet.handlers.ServletInitialHandler$1.handleRequest(ServletInitialHandler.java:172)
+    	at io.undertow.server.Connectors.executeRootHandler(Connectors.java:199)
+    	at io.undertow.server.HttpServerExchange$1.run(HttpServerExchange.java:774)
+    	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+    	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+    	at java.lang.Thread.run(Unknown Source)
+    Caused by: javax.ws.rs.client.ResponseProcessingException: javax.ws.rs.ProcessingException: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field ""access_token"" (class org.keycloak.representations.AccessTokenResponse), not marked as ignorable (9 known properties: ""notBeforePolicy"", ""otherClaims"", ""tokenType"", ""token"", ""expiresIn"", ""sessionState"", ""refreshExpiresIn"", ""idToken"", ""refreshToken""])
+     at [Source: org.apache.http.conn.EofSensorInputStream@9d6aba2; line: 1, column: 18] (through reference chain: org.keycloak.representations.AccessTokenResponse[""access_token""])
+    	at org.jboss.resteasy.client.jaxrs.internal.ClientInvocation.extractResult(ClientInvocation.java:140)
+    	at org.jboss.resteasy.client.jaxrs.internal.proxy.extractors.BodyEntityExtractor.extractEntity(BodyEntityExtractor.java:58)
+    	at org.jboss.resteasy.client.jaxrs.internal.proxy.ClientInvoker.invoke(ClientInvoker.java:104)
+    	at org.jboss.resteasy.client.jaxrs.internal.proxy.ClientProxy.invoke(ClientProxy.java:62)
+    	at com.sun.proxy.$Proxy93.grantToken(Unknown Source)
+    	at org.keycloak.admin.client.token.TokenManager.grantToken(TokenManager.java:59)
+    	at org.keycloak.admin.client.token.TokenManager.getAccessToken(TokenManager.java:36)
+    	at org.keycloak.admin.client.token.TokenManager.getAccessTokenString(TokenManager.java:31)
+    	at org.keycloak.admin.client.resource.BearerAuthFilter.filter(BearerAuthFilter.java:31)
+    	at org.jboss.resteasy.client.jaxrs.internal.ClientInvocation.invoke(ClientInvocation.java:384)
+    	at org.jboss.resteasy.client.jaxrs.internal.proxy.ClientInvoker.invoke(ClientInvoker.java:102)
+    	at org.jboss.resteasy.client.jaxrs.internal.proxy.ClientProxy.invoke(ClientProxy.java:62)
+    	at com.sun.proxy.$Proxy92.create(Unknown Source)
+    	at org.keycloak.quickstart.jaxrs.Resource.getSecured(Resource.java:47)
+    	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+    	at sun.reflect.NativeMethodAccessorImpl.invoke(Unknown Source)
+    	at sun.reflect.DelegatingMethodAccessorImpl.invoke(Unknown Source)
+
+I searched in the net and found this [solution][2] but it doesn't work, I also find that discussion (I need more reputation to post the link :http:/lists.jboss.org/pipermail/keycloak-user/2014-November/001120.html)   that explain the cause of the problem but I don't find a solution.
+can anyone help.
+
+  [1]: http://www.first8.nl/blog/programmatically-adding-users-in-keycloak/
+  [2]: https://issues.jboss.org/browse/KEYCLOAK-811
+
+",38866234,"The Keycloak Admin Client (starting from version 1.9.0) supports the `resteasy-jackson2-provider` JSON provider out of the box, and this resolves the issue.
+
+Use it in place of `resteasy-jackson-provider` in your pom.
+
+
+"
