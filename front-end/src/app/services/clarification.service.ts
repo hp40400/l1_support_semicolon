@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { SharingService } from './sharing.service';
 @Injectable()
 export class ClarificationService {
   readonly baseUrl = 'http://44.214.53.189:8081';
@@ -10,10 +11,15 @@ export class ClarificationService {
     })
   };
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private sharingService: SharingService) { }
 
   public getClarificationList(): Promise<any> {
-    const url = this.baseUrl + '/api/clarification';
+    const keywords = this.sharingService.getKeywords();
+    let keywordsParam = '';
+    console.log(keywords);
+    console.log(keywords.join(','));
+    keywordsParam = ((keywords?.length > 0) ? '?keywords=': '') + keywords.join(',');
+    const url = this.baseUrl + '/api/clarification' + keywordsParam;
     return this.http
       .get(url)
       .toPromise()

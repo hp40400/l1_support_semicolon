@@ -36,7 +36,7 @@
 
     .sidebar-wrapper{
         width: $full-width;
-        max-height: 80%;
+        max-height: calc(100vh - 350px);
         z-index: 4;
         position: relative;
         overflow-y: auto;

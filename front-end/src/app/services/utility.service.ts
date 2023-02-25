@@ -45,6 +45,10 @@ export class UtilityService {
                     this.sharingService.setSelectedClarificationArray(conversationArray);
                     this.sharingService.setFeedback(res?.data?.clarificationData?.feedback);
                     this.sharingService.setClarificationTitle(res?.data?.clarificationData?.title);
+                    this.sharingService.setKeywords(res?.data?.clarificationData?.indexingKeywords? res?.data?.clarificationData?.indexingKeywords: []);
+                    if(res?.data?.clarificationData?.indexingKeywords) {
+                        this.getClarificationListData();
+                    }
                 } 
             });
     }
@@ -91,7 +95,7 @@ export class UtilityService {
                 }
                 this.notifyService.showSuccess("Feedback added successfully !!",
                     "Notification");
-                location.reload();
+                // location.reload();
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while sending the Feedback!!",
