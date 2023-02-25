@@ -60,7 +60,9 @@ exports.getAnswareFromFineTuneModel = async (req, res) => {
       stop: ['END'],
     })
     console.log(response.data.choices[0].text?.trim())
-    res.json(response.data)
+    res.json({
+      answare: response.data.choices[0].text?.trim(),
+    })
   } catch (error) {
     console.log(error)
     res.status(404).json({
