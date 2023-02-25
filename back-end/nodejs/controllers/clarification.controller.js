@@ -136,21 +136,24 @@ exports.askAndClarify = async (req, res) => {
       ...clarificationData,
     }
 
-    const indexingKeyWord = await getIndexingQuery(queryPrompt)
-    console.log()
-    if (clarificationData.title == 'New Clarification') {
-      console.log('Updating new title ...')
-      newUpdatedData.title = await getTitle(queryPrompt)
-      console.log('Updated title name : ' + newUpdatedData.title)
-      newUpdatedData.indexingKeywords = indexingKeyWord
-    }
-
     const newConversationData = {
       request: queryPrompt,
       response: queryPromptAnswareResponse?.trim(),
       timestamp: Date.now(),
-      indexingKeywords: indexingKeyWord,
+      indexingKeywords: [],
     }
+
+    let indexingKeyWord = null
+    console.log()
+    if (clarificationData.title == 'New Clarification') {
+      indexingKeyWord = await getIndexingQuery(queryPrompt)
+      console.log('Updating new title ...')
+      newUpdatedData.title = await getTitle(queryPrompt)
+      console.log('Updated title name : ' + newUpdatedData.title)
+      newUpdatedData.indexingKeywords = indexingKeyWord
+      newConversationData.indexingKeywords = indexingKeyWord
+    }
+
     newUpdatedData.conversations = [
       ...clarificationData.conversations,
       newConversationData,
