@@ -25,7 +25,7 @@
     .dropdown-menu{
         right: 80px;
         left: auto !important;
-        top: -5px !important;
+        top: -52px !important;
         width: 290px;
         border-radius: 0.1875rem;
         padding: 0 10px;
@@ -87,7 +87,7 @@
     }
 
     .light-badge, .dark-badge{
-      margin:0;
+      margin: 0 5px 0 5px;
       border: 1px solid $info;
       &:hover{
         border: 1px solid $info;
