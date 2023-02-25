@@ -44,7 +44,7 @@ export class AdminLayoutComponent implements OnInit {
     this.clarificationService.setOpenAIModel(this.choosedAIModelType)
 
     this.notifyService.showSuccess(
-      `Switch to ${modelType.toUpperCase()} Model`,
+      `Changed to ${modelType.toUpperCase()} Model`,
       '',
     )
   }
