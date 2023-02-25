@@ -13,7 +13,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                 dir('back-end') {                     
+                 dir('nodejs/back-end') {                     
                 sh '''
                 API=$(cat ../../../env)
                 sed -i s/OPENAI_API_KEY_HERE/$API/g .env
