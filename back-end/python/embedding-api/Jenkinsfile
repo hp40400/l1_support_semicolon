@@ -15,7 +15,8 @@ pipeline {
             steps {
                  dir('back-end/python/embedding-api') {                     
                 sh '''
-                API=$(cat ../../../../../env)           
+                API=$(cat ../../../../../env)
+                sed -i s/OPENAI_API_KEY_HERE/$API/g Dockerfile
                 '''
                 //sh "cat .env"
                 sh 'docker stop backend2 || true'
