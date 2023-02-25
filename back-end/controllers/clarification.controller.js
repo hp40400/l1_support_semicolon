@@ -44,6 +44,14 @@ exports.createNewClarification = async (req, res) => {
       createdAt: Date.now(),
     }
 
+    const existingClarification = await ClarificationModel.findOne(
+      newClarificationData,
+    )
+
+    if (existingClarification) {
+      return res.status(400).json({ message: 'Clarification already exists' })
+    }
+
     const newClarification = await ClarificationModel.create(
       newClarificationData,
     )
@@ -90,7 +98,7 @@ exports.askAndClarify = async (req, res) => {
     const clarificationId = req.params.clarificationId
     const queryPrompt = req.body.request
 
-    const queryPromptAnswareResponse = await getAnswareFromPromptModel(
+    const queryPromptAnswareResponse = await getAnswareFromFineTuneModel(
       queryPrompt,
     )
 
@@ -102,7 +110,7 @@ exports.askAndClarify = async (req, res) => {
 
     const newConversationData = {
       request: queryPrompt,
-      response: queryPromptAnswareResponse,
+      response: queryPromptAnswareResponse?.trim(),
       timestamp: Date.now(),
     }
     newUpdatedData.conversations = [
@@ -110,16 +118,9 @@ exports.askAndClarify = async (req, res) => {
       newConversationData,
     ]
 
-    console.log('check my new Data', newUpdatedData)
-
-    const latestClarificationData = await ClarificationModel.findByIdAndUpdate(
-      clarificationId,
-      {
-        conversations: newUpdatedData.conversations,
-      },
-    )
-
-    console.log('Get My latest clarification data', clarificationData)
+    await ClarificationModel.findByIdAndUpdate(clarificationId, {
+      conversations: newUpdatedData.conversations,
+    })
 
     res.status(200).json({
       status: 'success',
@@ -153,7 +154,7 @@ async function getAnswareFromPromptModel(queryPrompt) {
 
     return response.data.choices[0].text
   } catch (error) {
-    console.log(error)
+    return error
   }
 }
 
@@ -189,7 +190,7 @@ exports.deleteClarificationById = async (req, res) => {
 
     await ClarificationModel.findByIdAndDelete(clarificationId)
 
-    res.status(410).json({
+    res.status(200).json({
       status: 'success',
     })
   } catch (error) {
@@ -211,7 +212,7 @@ exports.submitClarificationFeedback = async (req, res) => {
       },
     })
 
-    res.status(410).json({
+    res.status(200).json({
       status: 'success',
       message: 'Thank you for your feedback',
     })
@@ -220,5 +221,21 @@ exports.submitClarificationFeedback = async (req, res) => {
       status: 'fail',
       message: error.message,
     })
+  }
+}
+
+async function getAnswareFromFineTuneModel(queryPrompt) {
+  try {
+    const response = await openai.createCompletion({
+      model: 'davinci:ft-personal-2023-02-24-06-30-47',
+      prompt: `${queryPrompt} ?`,
+      temperature: 0.6,
+      max_tokens: 70,
+      stop: ['END'],
+    })
+
+    return response.data.choices[0].text
+  } catch (error) {
+    return error
   }
 }
