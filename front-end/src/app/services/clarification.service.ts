@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 @Injectable()
 export class ClarificationService {
-  readonly baseUrl = 'http://54.164.39.209:8081';
+  readonly baseUrl = 'http://44.214.53.189:8081';
 
   options = {
     headers: new HttpHeaders({

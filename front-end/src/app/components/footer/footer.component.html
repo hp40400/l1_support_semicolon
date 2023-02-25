@@ -1,9 +1,9 @@
 <footer *ngIf="(sharingService.getFeedback()?.is_satisfied == null && !sharingService.getSendFeedbackBtnClicked())">
   <div class="row">
-    <div *ngIf="sharingService.getSelectedClarificationArray()?.length > 0" class="test-style">
-      <button class=" row col-2 pt-3 feedback-styles" (click)="sendFeedback()"> <i class="mr-2 tim-icons icon-tap-02"> </i><h5>Send Feedback</h5></button>
-    </div>
     <div class="type_msg">
+      <div *ngIf="sharingService.getSelectedClarificationArray()?.length > 0" class="test-style">
+        <button class=" row col-4 pt-3 feedback-styles" (click)="sendFeedback()"> <i class="mr-2 tim-icons icon-tap-02"> </i><h5>Send Feedback</h5></button>
+      </div>
       <form class="input_msg_write">
         <textarea tabindex="0"
          data-id="root" 

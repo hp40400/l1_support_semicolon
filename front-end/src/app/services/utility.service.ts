@@ -52,8 +52,6 @@ export class UtilityService {
             .then((res) => {
                 this.notifyService.showSuccess("Clarification title modified successfully !!",
                     "Notification");
-
-                    this.getClarificationListData();
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while modifiying the clarification title !!",
@@ -67,8 +65,6 @@ export class UtilityService {
             .then((res) => {
                 this.notifyService.showSuccess("Clarification Deleted successfully !!",
                     "Notification");
-
-                    this.getClarificationListData();
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while deleting the Clarification !!",

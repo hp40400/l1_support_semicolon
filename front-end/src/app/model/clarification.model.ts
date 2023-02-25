@@ -5,7 +5,7 @@ export interface Clarification{
 }
 
 export interface MenuItem {
-    id: number;
+    id: string;
     path: string;
     title: string;
     icon?: string;
