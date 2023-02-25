@@ -98,7 +98,7 @@ exports.askAndClarify = async (req, res) => {
     const clarificationId = req.params.clarificationId
     const queryPrompt = req.body.request
 
-    const queryPromptAnswareResponse = await getAnswareFromPromptModel(
+    const queryPromptAnswareResponse = await getAnswareFromFineTuneModel(
       queryPrompt,
     )
 
@@ -110,7 +110,7 @@ exports.askAndClarify = async (req, res) => {
 
     const newConversationData = {
       request: queryPrompt,
-      response: queryPromptAnswareResponse?.replace('A:', '')?.trim(),
+      response: queryPromptAnswareResponse?.trim(),
       timestamp: Date.now(),
     }
     newUpdatedData.conversations = [
@@ -221,5 +221,21 @@ exports.submitClarificationFeedback = async (req, res) => {
       status: 'fail',
       message: error.message,
     })
+  }
+}
+
+async function getAnswareFromFineTuneModel(queryPrompt) {
+  try {
+    const response = await openai.createCompletion({
+      model: 'davinci:ft-personal-2023-02-24-06-30-47',
+      prompt: `${queryPrompt} ?`,
+      temperature: 0.6,
+      max_tokens: 100,
+      stop: ['END'],
+    })
+
+    return response.data.choices[0].text
+  } catch (error) {
+    return error
   }
 }
