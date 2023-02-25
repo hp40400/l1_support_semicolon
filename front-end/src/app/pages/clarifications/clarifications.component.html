@@ -9,13 +9,13 @@
             <div class=" block block-two"></div>
             <div class=" block block-three"></div>
             <div class=" block block-four"></div>
-            <a href="javascript:void(0)">
+            <div>
               <img alt="..." class=" avatar" src="assets/img/default-avatar.png" />
 
-              <h3 class="title">Semicolons</h3>
+              <h3 class="title">L1 Support User-1</h3>
               <h5 class="title">A platform to ask Support System related clarifications
                 and get relevant help from a trained AI</h5>
-            </a>
+              </div>
           </div>
           <div class="row card-description-text">
             <div class="col-8 col-offset-2 sub-card">
@@ -218,7 +218,7 @@
             </div>
           </li>
 
-          <li *ngIf="sharingService.getSendFeedbackBtnClicked() || sharingService.getFeedback()?.is_satisfied != null" class="feedback_msg message">
+          <li *ngIf="sharingService.getSendFeedbackBtnClicked()" class="feedback_msg message">
             <div class="incoming_msg">
               <div class="incoming_msg_img">
                 <img src="assets/img/anime3.png" alt="User avatar" />
@@ -226,20 +226,25 @@
               <div class="received_msg">
                 <div class="received_withd_msg">
                   <div class="feedback_form">
-                    <h4 *ngIf="sharingService.getFeedback()?.is_satisfied == null">Give Your Feedback!</h4>
-                    <h4 *ngIf="sharingService.getFeedback()?.is_satisfied != null">Thank you.You have already given the feedback.</h4>
+                    <h4>Give Your Feedback!</h4>
                     <p>Are you satisfy with the given answer?</p>
-                    <div *ngIf="sharingService.getSendFeedbackBtnClicked() || isStaisfied != undefined" class="row radio_container">
+                    <div class="row radio_container">
                       <div class="col-4 col-offset-2 feedback_option">
-                        <span><input name="options" type="radio" [value]="true" [(ngModel)]="is_satisfied"  
-                          [disabled]="(!sharingService.getSendFeedbackBtnClicked() && isStaisfied != null) || !!sharingService.getFeedbackResponse()"><label>Yes</label></span>
+                        <span>
+                          <input name="options" type="radio" [value]="true" [(ngModel)]="is_satisfied"  (click)="onClickeRadioOption()"
+                            [disabled]="!!sharingService.getFeedbackResponse()"
+                          ><label>Yes</label>
+                        </span>
                       </div>
                       <div class="col-4 feedback_option">
-                        <span><input name="options" type="radio" [value]="false" [(ngModel)]="is_satisfied" 
-                          [disabled]="(!sharingService.getSendFeedbackBtnClicked() && isStaisfied != null) || !!sharingService.getFeedbackResponse()"><label>No</label></span>
+                        <span>
+                          <input name="options" type="radio" [value]="false" [(ngModel)]="is_satisfied" (click)="onClickeRadioOption()"
+                            [disabled]="!!sharingService.getFeedbackResponse()"
+                          ><label>No</label>
+                        </span>
                       </div>
                     </div>
-                    <div *ngIf="(feedbackReason != undefined) || (sharingService.getSendFeedbackBtnClicked() && is_satisfied == false)">
+                    <div *ngIf="is_satisfied == false">
                       <div><p>Please provide your reason to improve our model:</p></div>
                       <div class="feedback_reason">
                         <textarea tabindex="0"
@@ -247,20 +252,65 @@
                           placeholder="Give a reason..."
                           class="m-0 w-full border-0 bg-transparent p-0 pl-2 pr-7 focus:ring-0 focus-visible:ring-0 dark:bg-transparent md:pl-0" 
                           [(ngModel)]="reason"
-                          [disabled]="(!sharingService.getSendFeedbackBtnClicked() && feedbackReason != null) || sharingService.getFeedbackResponse()"
+                          [disabled]="!!sharingService.getFeedbackResponse()"
                         ></textarea>
                       </div>
                     </div>
                     <!-- || (is_satisfied == false && reason == null) -->
-                    <div *ngIf="sharingService.getSendFeedbackBtnClicked()" class="button_container">
-                      <button class="mr-2" [disabled]="is_satisfied == null || !!sharingService.getFeedbackResponse()"><i class=" delete tim-icons icon-check-2" (click)="sendFeedbackReason()"></i></button>
-                      <button [disabled]="is_satisfied == null || !!sharingService.getFeedbackResponse()"><i class=" tim-icons icon-simple-remove" (click)="cancel()"></i></button>
+                    <div *ngIf="!sharingService.getFeedbackResponse()" class="button_container">
+                      <button class="mr-2" [disabled]="is_satisfied == null || (is_satisfied == false && reason == null)" (click)="sendFeedbackReason()"><i class=" delete tim-icons icon-check-2"></i></button>
+                      <button (click)="cancel()"><i class=" tim-icons icon-simple-remove"></i></button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </li>
+
+          <li *ngIf="!sharingService.getSendFeedbackBtnClicked() && sharingService.getFeedback()?.is_satisfied != null" class="feedback_msg message">
+            <div class="incoming_msg">
+              <div class="incoming_msg_img">
+                <img src="assets/img/anime3.png" alt="User avatar" />
+              </div>
+              <div class="received_msg">
+                <div class="received_withd_msg">
+                  <div class="feedback_form">
+                    <h4 *ngIf="sharingService.getFeedback()?.is_satisfied != null">Thank you.You have already given the feedback.</h4>
+                    <p>Are you satisfy with the given answer?</p>
+                    <div class="row radio_container">
+                      <div class="col-4 col-offset-2 feedback_option">
+                        <span>
+                          <input name="options" type="radio" [value]="true" [(ngModel)]="!!sharingService.getFeedback().reason"  (click)="onClickeRadioOption()"
+                            [disabled]="true"
+                          ><label>Yes</label>
+                        </span>
+                      </div>
+                      <div class="col-4 feedback_option">
+                        <span>
+                          <input name="options" type="radio" [value]="false" [(ngModel)]="!sharingService.getFeedback().reason" (click)="onClickeRadioOption()"
+                            [disabled]="true"
+                          ><label>No</label>
+                        </span>
+                      </div>
+                    </div>
+                    <div *ngIf="!!sharingService.getFeedback().reason">
+                      <div><p>Please provide your reason to improve our model:</p></div>
+                      <div class="feedback_reason">
+                        <textarea tabindex="0"
+                          rows="3" 
+                          placeholder="Give a reason..."
+                          class="m-0 w-full border-0 bg-transparent p-0 pl-2 pr-7 focus:ring-0 focus-visible:ring-0 dark:bg-transparent md:pl-0" 
+                          [(ngModel)]="sharingService.getFeedback().reason"
+                          [disabled]="true"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+
           <li *ngIf="sharingService.getSendFeedbackBtnClicked() && !!sharingService.getFeedbackResponse()" class="feedback_msg message">
             <div *ngIf="(sharingService.getFeedbackResponse() != (null || ''))" class="incoming_msg">
               <div class="incoming_msg_img">

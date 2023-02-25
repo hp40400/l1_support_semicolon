@@ -46,14 +46,10 @@ export class ClarificationsComponent implements OnInit {
     );
   }
 
-  get isStaisfied() {
-    this.is_satisfied = this.sharingService.getFeedback()?.is_satisfied != undefined? this.sharingService.getFeedback()?.is_satisfied: null;
-    return this.is_satisfied;
-  }
-
-  get feedbackReason() {
-    this.reason = this.sharingService.getFeedback()?.reason;
-    return this.reason;
+  onClickeRadioOption() {
+    if(this.is_satisfied) {
+      this.reason = null;
+    }
   }
 
   showUserGuideData(data: string) {

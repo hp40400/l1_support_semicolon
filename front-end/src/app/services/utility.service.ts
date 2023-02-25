@@ -3,6 +3,7 @@ import { SharingService } from './sharing.service';
 import { ClarificationService } from './clarification.service';
 import { NotificationService } from './notification.service';
 import { Feedback } from '../model/clarification.model';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class UtilityService {
@@ -12,7 +13,8 @@ export class UtilityService {
     constructor(
         private sharingService: SharingService,
         private clarificationService: ClarificationService,
-        private notifyService: NotificationService) { }
+        private notifyService: NotificationService,
+        private router: Router) { }
 
     async getClarificationListData() {
         this.clarificationList = [];
@@ -52,6 +54,8 @@ export class UtilityService {
             .then((res) => {
                 this.notifyService.showSuccess("Clarification title modified successfully !!",
                     "Notification");
+                    
+                    this.sharingService.setClarificationTitle(title);
                     this.getClarificationListData();
             })
             .catch((err) => {
@@ -67,6 +71,8 @@ export class UtilityService {
                 this.notifyService.showSuccess("Clarification Deleted successfully !!",
                     "Notification");
                     this.getClarificationListData();
+                    this.router.navigate(['clarification']);
+                    this.sharingService.setClarificationTitle('');
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while deleting the Clarification !!",

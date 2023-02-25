@@ -146,7 +146,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   async editExistingClarificationTitle(clarificationId: string, title: string) {
-    this.utilityService.editExistingclarificationData(clarificationId, title);
+    const editedTitle = title === ''? 'New Clarification': title;
+    this.utilityService.editExistingclarificationData(clarificationId, editedTitle);
     await this.getMenuItem();
     this.isEditEnable = false;
   }
@@ -154,7 +155,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
   async deleteExistingClarification(clarificationId: string) {
     this.utilityService.deleteExistingclarificationData(clarificationId);
     await this.getMenuItem();
-    this.router.navigate(['clarification'])
     this.isDeleteEnable = false;
   }
 
