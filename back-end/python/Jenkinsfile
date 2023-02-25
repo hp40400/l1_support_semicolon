@@ -21,7 +21,7 @@ pipeline {
                 sh 'docker stop backend2 || true'
                 sh 'docker rm backend2 || true'
                 sh 'docker rmi hp/node-web-app2 || true'
-                sh 'docker build --build-arg env.OPENAI_API_KEY=$API -t hp/node-web-app2 .'
+                sh 'docker build -t hp/node-web-app2 .'
                 sh 'docker run --name backend2 -p 8082:80 -d hp/node-web-app2'
                  }
             }
