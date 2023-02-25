@@ -38,6 +38,5 @@ export class AdminLayoutComponent implements OnInit {
     this.choosedAIModelType = modelType
 
     this.clarificationService.setOpenAIModel(this.choosedAIModelType)
-    console.log('Model Type', modelType)
   }
 }
