@@ -1,0 +1,55 @@
+.menuItem {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete {
+    width: 15px;
+    height: 15px;
+}
+
+.tooltip {
+    position: absolute;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+  }
+  
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    overflow-wrap: break-word;
+  
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+  }
+  
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+  }
+
+  .clarification-title{
+    background: transparent;
+    border-bottom: 2px solid darkgray;
+    color: white;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    outline: none;
+  }
+
+  .sidebar_menu {
+    margin: 10px 5px 0 15px;
+    padding: 10px 0;
+  }
+
+  .sidebar_menu_wrapper {
+    padding-right: 0;
+    margin-left: 0;
+  }

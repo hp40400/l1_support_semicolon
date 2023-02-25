@@ -1,0 +1,40 @@
+<div class="logo">
+  <a href="#/clarification" class="simple-text logo-mini" (click)="clickNewClarification()">
+    <i class=" tim-icons icon-simple-add"> </i>
+  </a>
+  <a href="#/clarification" class="simple-text logo-normal" (click)="clickNewClarification()">
+    New Clarification 
+  </a>
+</div>
+<div class="sidebar-wrapper">
+  <ul class="nav">
+    <li
+      routerLinkActive="active"
+      *ngFor="let menuItem of menuItems"
+      class="{{ menuItem.class }} nav-item"
+    >
+    <a [routerLink]="[menuItem.path]" class="sidebar_menu">
+      <div class="row col-12 sidebar_menu_wrapper">
+        <div *ngIf="!isEditEnable  || (menuItem.id !== sharingService.getClarificationId())" [ngClass]="menuItem?.id != sharingService.getClarificationId() ? 'col-12 menuItem' : 'col-6 menuItem'" (click)="clickExistingClarification(menuItem.id, menuItem.title)">
+            <span title="{{ menuItem?.title }}">{{ menuItem?.title }}</span>
+        </div>
+        <div *ngIf="isEditEnable && (menuItem.id == sharingService.getClarificationId())" [ngClass]="menuItem?.id != sharingService.getClarificationId() ? 'col-12 menuItem' : 'col-6 menuItem'">
+          <input id="clar" class="clarification-title" [(ngModel)]="menuItemTitle"
+           />
+      </div>
+        <div *ngIf="menuItem.id == sharingService.getClarificationId()" class="col-2">
+          <i *ngIf="!isEditEnable && !isDeleteEnable" title="Edit Clarification" class="delete tim-icons icon-pencil" (click)="onEdit()"> </i>
+          <i *ngIf="isEditEnable" title="Submit" class=" delete tim-icons icon-check-2" (click)="editExistingClarificationTitle(menuItem.id, menuItemTitle)"></i>
+          <i *ngIf="isDeleteEnable" title="Delete" class=" delete tim-icons icon-check-2" (click)="deleteExistingClarification(menuItem.id)"></i>
+        </div>
+        <div *ngIf="menuItem.id == sharingService.getClarificationId()" class="col-2">
+          <i *ngIf="!isEditEnable  && !isDeleteEnable" title="Delete Clarification" class=" delete tim-icons icon-trash-simple" (click)="onDelete()"> </i>
+          <i *ngIf="isEditEnable" title="Cancel" class=" tim-icons icon-simple-remove" (click)="cancelEdit()"></i>
+          <i *ngIf="isDeleteEnable" title="Cancel" class=" tim-icons icon-simple-remove" (click)="cancelDelete()"></i>
+        </div>
+      </div>
+    </a>
+    </li>
+  </ul>
+</div>
+

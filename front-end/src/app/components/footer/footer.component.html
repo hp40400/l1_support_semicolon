@@ -1,0 +1,22 @@
+<footer *ngIf="(sharingService.getFeedback()?.is_satisfied == null && !sharingService.getSendFeedbackBtnClicked())">
+  <div class="row">
+    <div *ngIf="sharingService.getSelectedClarificationArray()?.length > 0" class="test-style">
+      <button class=" row col-2 pt-3 feedback-styles" (click)="sendFeedback()"> <i class="mr-2 tim-icons icon-tap-02"> </i><h5>Send Feedback</h5></button>
+    </div>
+    <div class="type_msg">
+      <form class="input_msg_write">
+        <textarea tabindex="0"
+         data-id="root" 
+         rows="2" 
+         placeholder="Type here..."
+         class="m-0 w-full resize-none border-0 bg-transparent p-0 pl-2 pr-7 focus:ring-0 focus-visible:ring-0 dark:bg-transparent md:pl-0" 
+         [(ngModel)]="inputClarification"
+         (keyup.enter)="sendMessage()"
+        ></textarea>
+        <button class="msg_send_btn" type="button" (click)="sendMessage()">
+          <i class=" tim-icons icon-send"> </i>
+        </button>
+      </form>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,282 @@
+<div *ngIf="sharingService.getClarificationId() == null" class=" content">
+  <div class=" row">
+    <div class=" col-md-12">
+      <div class=" card card-user">
+        <div class=" card-body">
+          <p class=" card-text"></p>
+          <div class=" author">
+            <div class=" block block-one"></div>
+            <div class=" block block-two"></div>
+            <div class=" block block-three"></div>
+            <div class=" block block-four"></div>
+            <a href="javascript:void(0)">
+              <img alt="..." class=" avatar" src="assets/img/default-avatar.png" />
+
+              <h3 class="title">Semicolons</h3>
+              <h5 class="title">A platform to ask Support System related clarifications
+                and get relevant help from a trained AI</h5>
+            </a>
+          </div>
+          <div class="row card-description-text">
+            <div class="col-8 col-offset-2 sub-card">
+              <div class="row col-12">
+                <div class="col-3">
+                  <h3 class="mt-5 pt-3">
+                    <i class="tim-icons icon-bullet-list-67 mr-3"> </i>User Guide
+                  </h3>
+                </div>
+                <div class="col-9">
+                  <div *ngIf="isInitialLanding">
+                    <span class="title row">
+                      <h4>Main Functionalaties</h4>
+                    </span>
+                    <ul>
+                      <li>
+                        <span class="mouse-pointer" (click)="showUserGuideData('newCl')">
+                          Create new clarification:</span>
+                      </li>
+                      <li>
+                        <span class="mouse-pointer" (click)="showUserGuideData('continueEx')">
+                          Continue existing clarification:</span>
+                      </li>
+                      <li>
+                        <span class="mouse-pointer" (click)="showUserGuideData('rename')">Rename the title of a
+                          particular clarification for better reference:</span>
+                      </li>
+                      <li>
+                        <span class="mouse-pointer" (click)="showUserGuideData('feedback')">
+                          Give feedback on the given answer (Whether you satisfied or not):</span>
+                      </li>
+                      <li>
+                        <span class="mouse-pointer" (click)="showUserGuideData('delete')">
+                          Delete existing clarification conversation:</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div *ngIf="isNewClStarted">
+                    <span class="title row">
+                      <h4 class="">Create new clarification:</h4>
+                    </span>
+                    <div>
+                      <ul>
+                        <li>
+                          <span>
+                            Click on New Clarification button on the sidebar top left
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Then type in the text area provided in and press enter or
+                            click send icon
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Alternative Option: Type in the text area provided in and
+                            press enter or click send icon where User Guide provided
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div *ngIf="isContinueExistingCl">
+                    <span class="title row">
+                      <h4>Continue existing clarification:</h4>
+                    </span>
+                    <div>
+                      <ul>
+                        <li>
+                          <span>
+                            Click on any existing clarification, then the older conversation
+                            will load on left side.
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Type in the text area provided in and press enter or click send icon
+                            to continue on the same.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div *ngIf="isRename">
+                    <span class="title row">
+                      <h4>Rename the title of a particular clarification for better reference:</h4>
+                    </span>
+                    <div>
+                      <ul>
+                        <li>
+                          <span>
+                            Click on any existing clarification, Rename icon will appear.
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Type in to rename the previous title of the clarification.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div *ngIf="isFeedback">
+                    <span class="title row ">
+                      <h4>Give feedback on the given answer (Whether you satisfied or not):</h4>
+                    </span>
+                    <div>
+                      <ul>
+                        <li>
+                          <span>
+                            Once you started a new, or continue on existing clarification by
+                            clicking send button, for the provided answer you can give
+                            feedback by clicking Send Feedback button.
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Click Yes, if you satisfied with the provided answer. Then the
+                            continuation of the clarification will be terminated.
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Click No, if you satisfied with the provided answer. Add your
+                            suggetions in the text box provided and click Submit.
+                            Then the continuation of the clarification will be terminated.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div *ngIf="isDelete">
+                    <span class="title row ">
+                      <h4>Delete existing clarification conversation:</h4>
+                    </span>
+                    <div>
+                      <ul>
+                        <li>
+                          <span>
+                            Click on any existing clarification, Delete icon will appear
+                            in the right end.
+                          </span>
+                        </li>
+                        <li>
+                          <span>
+                            Click it to delete the whole clarification.
+                            (Note: Deleting will be permenant).
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div *ngIf="!isInitialLanding">
+                    <button class="back_btn" type="button" (click)="back()">
+                      <i class="fas fa-arrow-left"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class=" card-footer">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="sharingService.getClarificationId() != null" class="msg_container">
+  <div class="messaging" #scrollMe [scrollTop]="scrollMe.scrollHeight"
+  [ngClass]="(sharingService.getFeedback()?.is_satisfied == null && !sharingService.getSendFeedbackBtnClicked()) ? 'min-height': 'max-height'">
+    <div class="inbox_msg">
+      <div class="mesgs">
+        <div class="msg_history">
+          <li class="message" *ngFor="let clarification of sharingService.getSelectedClarificationArray()">
+            <div class="outgoing_msg">
+              <div class="sent_msg">
+                <span>
+                  <p>{{ clarification?.request }}</p>
+                </span>
+              </div>
+              <div class="outgoing_msg_img">
+                <img src="assets/img/default-avatar.png" alt="User avatar" />
+              </div>
+            </div>
+
+            <div *ngIf="clarification?.response" class="incoming_msg">
+              <div class="incoming_msg_img">
+                <img src="assets/img/anime3.png" alt="User avatar" />
+              </div>
+              <div class="received_msg">
+                <div class="received_withd_msg">
+                  <p>{{ clarification.response }}</p>
+                  <i title="Read Text" class="fa fa-volume-up speaker" aria-hidden="true" (click)="readMesg(clarification.response)"></i>
+                  <i title="Stop Reading Text" class="fa fa-volume-off speaker" aria-hidden="true" (click)="stopRead()"></i>
+                </div>
+              </div>
+            </div>
+          </li>
+
+          <li *ngIf="sharingService.getSendFeedbackBtnClicked() || sharingService.getFeedback()?.is_satisfied != null" class="feedback_msg message">
+            <div class="incoming_msg">
+              <div class="incoming_msg_img">
+                <img src="assets/img/anime3.png" alt="User avatar" />
+              </div>
+              <div class="received_msg">
+                <div class="received_withd_msg">
+                  <div class="feedback_form">
+                    <h4 *ngIf="sharingService.getFeedback()?.is_satisfied == null">Give Your Feedback!</h4>
+                    <h4 *ngIf="sharingService.getFeedback()?.is_satisfied != null">Thank you.You have already given the feedback.</h4>
+                    <p>Are you satisfy with the given answer?</p>
+                    <div *ngIf="sharingService.getSendFeedbackBtnClicked() || isStaisfied != undefined" class="row radio_container">
+                      <div class="col-4 col-offset-2 feedback_option">
+                        <span><input name="options" type="radio" [value]="true" [(ngModel)]="is_satisfied"  
+                          [disabled]="(!sharingService.getSendFeedbackBtnClicked() && isStaisfied != null) || !!sharingService.getFeedbackResponse()"><label>Yes</label></span>
+                      </div>
+                      <div class="col-4 feedback_option">
+                        <span><input name="options" type="radio" [value]="false" [(ngModel)]="is_satisfied" 
+                          [disabled]="(!sharingService.getSendFeedbackBtnClicked() && isStaisfied != null) || !!sharingService.getFeedbackResponse()"><label>No</label></span>
+                      </div>
+                    </div>
+                    <div *ngIf="(feedbackReason != undefined) || (sharingService.getSendFeedbackBtnClicked() && is_satisfied == false)">
+                      <div><p>Please provide your reason to improve our model:</p></div>
+                      <div class="feedback_reason">
+                        <textarea tabindex="0"
+                          rows="3" 
+                          placeholder="Give a reason..."
+                          class="m-0 w-full border-0 bg-transparent p-0 pl-2 pr-7 focus:ring-0 focus-visible:ring-0 dark:bg-transparent md:pl-0" 
+                          [(ngModel)]="reason"
+                          [disabled]="(!sharingService.getSendFeedbackBtnClicked() && feedbackReason != null) || sharingService.getFeedbackResponse()"
+                        ></textarea>
+                      </div>
+                    </div>
+                    <!-- || (is_satisfied == false && reason == null) -->
+                    <div *ngIf="sharingService.getSendFeedbackBtnClicked()" class="button_container">
+                      <button class="mr-2" [disabled]="is_satisfied == null || !!sharingService.getFeedbackResponse()"><i class=" delete tim-icons icon-check-2" (click)="sendFeedbackReason()"></i></button>
+                      <button [disabled]="is_satisfied == null || !!sharingService.getFeedbackResponse()"><i class=" tim-icons icon-simple-remove" (click)="cancel()"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li *ngIf="sharingService.getSendFeedbackBtnClicked() && !!sharingService.getFeedbackResponse()" class="feedback_msg message">
+            <div *ngIf="(sharingService.getFeedbackResponse() != (null || ''))" class="incoming_msg">
+              <div class="incoming_msg_img">
+                <img src="assets/img/anime3.png" alt="User avatar" />
+              </div>
+              <div class="received_msg">
+                <div class="received_withd_msg">
+                  <p>{{ sharingService.getFeedbackResponse() }}</p>
+                  <i class="fa fa-volume-up speaker" aria-hidden="true" (click)="readMesg(sharingService.getFeedbackResponse())"></i>
+                  <i class="fa fa-volume-off speaker" aria-hidden="true" (click)="stopRead()"></i>
+                </div>
+              </div>
+            </div>
+          </li>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

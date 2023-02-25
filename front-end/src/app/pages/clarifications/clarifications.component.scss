@@ -1,0 +1,270 @@
+.sub-card {
+    background-color: #1e1e2f;
+    opacity: 0.5;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+    height: fit-content;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+	h4 {
+		padding-left: 35px;
+		margin-top: 10px;
+	}
+}
+
+.card-description-text {
+    justify-content: center;
+    color: white;
+    font-weight: 400;
+}
+
+.mouse-pointer {
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.back_btn {
+    background: #344675;
+    background-image: linear-gradient(to bottom left, #344675, #263148, #344675);
+    border: medium none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    font-size: 17px;
+    height: 35px;
+    float:right;
+    margin: 15px;
+    width: 35px;
+}
+
+.msg_container {
+	padding: 30px 30px 30px 280px;
+    min-height: calc(100vh - 70px);
+}
+
+.received_withd_msg p {
+	background: #ebebeb none repeat scroll 0 0;
+	border-radius: 3px;
+	color: #646464;
+	font-size: 14px;
+	margin: 0;
+	padding: 5px 10px 5px 12px;
+	width: 100%;
+}
+
+.sent_msg p {
+	background: rgba(78, 225, 90, 0.6) none repeat scroll 0 0;
+	border-radius: 3px;
+	font-size: 14px;
+	margin: 0;
+	color: #fff;
+	padding: 5px 10px 5px 12px;
+	width: 100%;
+}
+
+.outgoing_msg {
+	overflow: hidden;
+    width: 80%;
+    display: flex;
+    justify-content: flex-end;
+    float: right;
+	margin: 5px 0 5px;
+}
+
+.sent_msg {
+	float: right;
+	width: auto;
+    margin-left: 10px;
+}
+
+.msg_send_btn {
+	background: #05728f none repeat scroll 0 0;
+	border: medium none;
+	border-radius: 50%;
+	color: #fff;
+	cursor: pointer;
+	font-size: 17px;
+	height: 33px;
+	position: absolute;
+	right: 0;
+	top: 11px;
+	width: 33px;
+}
+
+.messaging {
+	padding: 10px 150px 10px 150px;
+    overflow: hidden;
+    max-height: calc(100vh - 200px);
+    min-height: 100%;
+    width: 100%;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.msg_history {
+	// height: 516px;
+	overflow-y: auto;
+}
+
+.inbox_msg {
+	// border: 1px solid #c4c4c4;
+	clear: both;
+	overflow: hidden;
+}
+
+.incoming_msg {
+	overflow: hidden;
+    margin: 26px 0 26px;
+    width: 80%;
+    display: flex;
+    justify-content: flex-start;
+    float: left;
+}
+
+.incoming_msg_img {
+	margin-right: 10px;
+	img {
+		max-width: 30px !important;
+	}
+}
+
+.outgoing_msg_img {
+	img {
+		max-width: 30px !important;
+	}
+}
+
+.received_msg {
+	display: inline-block;
+	padding: 0;
+	vertical-align: top;
+	width: auto;
+	.speaker {
+		font-size: 15px;
+		margin: 5px;
+		float: left;
+		color: gray;
+		cursor: pointer;
+	}
+}
+
+.received_withd_msg p {
+	background: #ebebeb none repeat scroll 0 0;
+	border-radius: 3px;
+	color: #646464;
+	font-size: 14px;
+	margin: 0;
+	padding: 5px 10px 5px 12px;
+	width: 100%;
+}
+
+.mesgs {
+	float: right;
+	padding: 10px 15px 0 25px;
+	width: 100%;
+}
+
+.sent_msg {
+	float: right;
+	width: auto;
+    margin-right: 10px;
+}
+
+.msg_send_btn {
+	background: #05728f none repeat scroll 0 0;
+	border: medium none;
+	border-radius: 50%;
+	color: #fff;
+	cursor: pointer;
+	font-size: 17px;
+	height: 33px;
+	position: absolute;
+	right: 0;
+	top: 11px;
+	width: 33px;
+}
+
+.messaging {
+	padding: 10px 150px 10px 150px;
+    overflow: hidden;
+    max-height: calc(100vh - 270px);
+    min-height: 100%;
+    width: 100%;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.feedback_msg {
+	padding-top: 20px;
+	.received_msg {
+		width: 80%;
+	}
+	.feedback_form {
+		background: #ebebeb none repeat scroll 0 0;
+		border-radius: 3px;
+		color: #646464;
+		font-size: 14px;
+		margin: 0;
+		padding: 5px 10px 5px 12px;
+		width: 100%;
+		h4 {
+			color: #646464;
+			font-weight: bold;
+			display: flex;
+			justify-content: center;
+			margin-bottom: 0;
+			text-align: center;
+		}
+		.feedback_option {
+			justify-content: center;
+			display: flex;
+		}
+		p {
+			justify-content: center;
+			display: flex;
+		}
+		input {
+			margin-right: 10px;
+			margin-top: 5px;
+		}
+		.radio_container {
+			display: flex;
+			justify-content: center;
+		}
+		.feedback_reason {
+			display: flex;
+			justify-content: center;
+			margin: 0 20px 20px 20px;
+			textarea {
+				width: 100%;
+				border: 1px solid #646464 !important;
+				resize: none;
+				border-radius: 6px;
+			}
+		}
+		.button_container {
+			display: flex;
+			justify-content: center;
+			margin-bottom: 10px;
+			button {
+				border-radius: 5px;
+			}
+		}
+	}
+}
+
+.message {
+	list-style-type: none;
+}
+
+.min-height {
+    max-height: calc(100vh - 270px);
+}
+
+.max-height {
+    max-height: calc(100vh - 120px);
+}
