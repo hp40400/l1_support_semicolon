@@ -19,11 +19,11 @@ pipeline {
                 sed -i s/OPENAI_API_KEY_HERE/$API/g .env
                 '''
                 sh "cat .env"
-                sh 'docker stop frontend || true'
-                sh 'docker rm frontend || true'
+                sh 'docker stop backend || true'
+                sh 'docker rm backend || true'
                 sh 'docker rmi hp/node-web-app || true'
                 sh 'docker build -t hp/node-web-app .'
-                sh 'docker run --name frontend -p 8081:3100 -d hp/node-web-app'
+                sh 'docker run --name backend -p 8081:3100 -d hp/node-web-app'
                  }
             }
         }
