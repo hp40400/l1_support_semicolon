@@ -46,7 +46,8 @@ disable_warnings(InsecureRequestWarning)
 
 
 #Openai API Key
-openai.api_key = "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"
+# openai.api_key = "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"
+openai.api_key = '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'
 
 ##############-Crawl Webpage and Creat Embedding-###################
 
@@ -337,7 +338,7 @@ openai.api_key = "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"
 ### Step 11 Open Embedding CSV,Generate Context and calling creation API
 ################################################################################
 
-df=pd.read_csv('processed/embeddings.csv', index_col=0)
+df=pd.read_csv('../../../processed/embeddings.csv', index_col=0)
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
 df.head()
@@ -451,5 +452,4 @@ def answer_question(
 
 #print(answer_question(df, question="What day is it?", debug=False))
 
-
-print(answer_question(df, question="how to configure docker",debug=True))
+print(answer_question(df, question="explain the deployment architecture", debug=False))

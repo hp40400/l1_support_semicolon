@@ -11,10 +11,33 @@ async function getSortClarificationData() {
   return clarificationList
 }
 
+async function getSortClarificationDataByIndexingQuery(keywords) {
+  const loverCaseKeywords = keywords
+    .split(',')
+    .map((keyword) => keyword.toLowerCase())
+  const query = { indexingKeywords: { $in: loverCaseKeywords } }
+
+  const clarificationList = await ClarificationModel.find(query).sort({
+    createdAt: -1,
+  })
+
+  return clarificationList
+}
+
 // Get All Clarifications
 exports.getAllClarificationList = async (req, res) => {
   try {
-    const clarificationList = await getSortClarificationData()
+    let clarificationList = null
+    let keywords = req.query.keywords
+    if (keywords !== undefined) {
+      clarificationList = await getSortClarificationDataByIndexingQuery(
+        keywords,
+      )
+    }
+
+    if (clarificationList == null || keywords == null) {
+      clarificationList = await getSortClarificationData()
+    }
 
     res.status(200).json({
       status: 'success',
@@ -24,6 +47,7 @@ exports.getAllClarificationList = async (req, res) => {
       },
     })
   } catch (error) {
+    console.log(error)
     res.status(400).json({
       status: 'fail',
       message: error.message,
@@ -97,21 +121,35 @@ exports.askAndClarify = async (req, res) => {
   try {
     const clarificationId = req.params.clarificationId
     const queryPrompt = req.body.request
+    console.log(queryPrompt)
 
     const queryPromptAnswareResponse = await getAnswareFromFineTuneModel(
       queryPrompt,
     )
 
+    console.log(queryPromptAnswareResponse)
+
     const clarificationData = await ClarificationModel.findById(clarificationId)
+    console.log('Data from DB : ' + clarificationData)
 
     const newUpdatedData = {
       ...clarificationData,
+    }
+
+    const indexingKeyWord = await getIndexingQuery(queryPrompt)
+    console.log()
+    if (clarificationData.title == 'New Clarification') {
+      console.log('Updating new title ...')
+      newUpdatedData.title = await getTitle(queryPrompt)
+      console.log('Updated title name : ' + newUpdatedData.title)
+      newUpdatedData.indexingKeywords = indexingKeyWord
     }
 
     const newConversationData = {
       request: queryPrompt,
       response: queryPromptAnswareResponse?.trim(),
       timestamp: Date.now(),
+      indexingKeywords: indexingKeyWord,
     }
     newUpdatedData.conversations = [
       ...clarificationData.conversations,
@@ -120,6 +158,8 @@ exports.askAndClarify = async (req, res) => {
 
     await ClarificationModel.findByIdAndUpdate(clarificationId, {
       conversations: newUpdatedData.conversations,
+      title: newUpdatedData.title,
+      indexingKeywords: newUpdatedData.indexingKeywords,
     })
 
     res.status(200).json({
@@ -129,6 +169,7 @@ exports.askAndClarify = async (req, res) => {
       },
     })
   } catch (error) {
+    console.log(error)
     res.status(400).json({
       status: 'fail',
       message: error.message,
@@ -153,6 +194,48 @@ async function getAnswareFromPromptModel(queryPrompt) {
     })
 
     return response.data.choices[0].text
+  } catch (error) {
+    return error
+  }
+}
+
+async function getTitle(queryPrompt) {
+  // Bringing in the training model
+  let promptContext = `Provide a matching title using 3 words for this without quatation marks - `
+
+  try {
+    const response = await openai.createCompletion({
+      model: 'text-davinci-003',
+      prompt: `${promptContext} ${queryPrompt} ?`,
+      temperature: 0.6,
+      max_tokens: 60,
+    })
+
+    console.log('Title returned : ' + response.data.choices[0].text)
+    return response.data.choices[0].text.replace(/"/g, '')
+  } catch (error) {
+    return error
+  }
+}
+
+async function getIndexingQuery(queryPrompt) {
+  // Bringing in the training model
+  let promptContext = `Give me the maximum 3 comma separated short indexing keywords for the question :  `
+
+  try {
+    const response = await openai.createCompletion({
+      model: 'text-davinci-003',
+      prompt: `${promptContext} ${queryPrompt} ?`,
+      temperature: 0.6,
+      max_tokens: 60,
+    })
+
+    console.log('Query indexing : ' + response.data.choices[0].text)
+    const trimmedArr = response.data.choices[0].text
+      .split(',')
+      .map((a) => a.trim().toLowerCase())
+    console.log(trimmedArr)
+    return trimmedArr
   } catch (error) {
     return error
   }

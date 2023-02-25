@@ -9,10 +9,14 @@ export class NotificationService {
     constructor(private toastr: ToastrService) { }
 
     showSuccess(message, title) {
-        this.toastr.success(message, title)
+        this.toastr.success(message, title, {
+            onActivateTick: true,
+          });
     }
 
     showError(message, title) {
-        this.toastr.error(message, title)
+        this.toastr.error(message, title, {
+            onActivateTick: true,
+          });
     }
 }
