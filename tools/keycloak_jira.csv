@@ -1,0 +1,782 @@
+Key,Subject,Description
+,,
+KEYCLOAK-19885,Parallelize cache manager init,"We should be able to save more startup time by parallelizing the init of the cache manager.
+
+Cache manager bootstrap is one of the main steps that takes time to execute. By having it running in parallel, the main execution path (quarkus bootstrap and init of providers that do not depend on the cache manager) is not blocked."
+,,
+KEYCLOAK-19884,Certify Keycloak 15.0.2 to the FAPI Generic profile,"Make sure that Keycloak is certified and listed on this page https://openid.net/certification/#FAPI_OPs in the ""FAPI 1 Advanced Final (Generic)"" part."
+,,
+KEYCLOAK-19881,Make module 'other' independent,"At this moment, in our testsuite, we have module `integration-arquillian/other` which contains various test sets for different technologies/services. When some of the module is executed, the _SSSD_ and _adapter_ module is built and we don't want it. Those modules should be independent as the other ones and be executed only by specifying the provided profile. "
+,,
+KEYCLOAK-19877,Update additional Arquillian dependencies,It'd be great to update our Arquillian dependencies
+,,
+KEYCLOAK-19871,Unable to find keycloak-client-cli-dist with reactor build,"Building Keycloak starting with the server-x-dist like the following:
+
+{code}
+mvn -Pdistribution -pl distribution/server-x-dist -am -DskipTests -f $SRC_DIR/pom.xml -T 4 clean package
+{code}
+
+Results in a error as keycloak-client-cli-dist hasn't been built in the reactor as there is no dependency on this in server-x-dist, while it at the same time tries to unzip the artifact.
+"
+,,
+KEYCLOAK-19864,Missing org.jboss.logging in keycloak-core modules in adapters,"In  ""Red Hat Single Sign-On 7.5.0 Client Adapter for JBoss EAP 7"", Under Keycloak-core modules , <module name=""org.jboss.logging""/> is missing which is causing class loading issues. 
+
+The ""org.jboss.logging"" is correctly included in Keycloak server distribution inside ""keycloak-core"" module. It is just missing in the keycloak-core module of adapters distribution."
+,,
+KEYCLOAK-19859,Patching request filter to properly end responses,"After upgrading to Quarkus 2.4.1.Final, JTA transactions were not being completed. The reason is still unknown but I suspect something changed in Resteasy that no longer forces us to use a specific handler in Vert.X to properly complete transactions and close the keycloak session.
+
+So far, we were using a specific handler in Vert.X to delay completing the request to properly support JAX-RS resources returning streams.
+
+But now this seems to be no longer necessary."
+,,
+KEYCLOAK-19858,Credentials logged in plaintext in Keycloak.X CLI,"*Why:*
+
+see [https://groups.google.com/g/keycloak-user/c/02p0VMxl8mg]
+
+*What:*
+
+Some commands in the kc.x cli show credentials in plaintext. this is obviously a bad idea. Especially:
+
+1) Output after running augmentation / build cmd:
+{code:java}
+kc.sh start --auto-build --db=postgres --db-username=foo --db-password=bar {code}
+leads to the help msg showing the db password as plain text.
+
+2) Output of 
+{code:java}
+kc.sh show-config all{code}
+ masks only the db-password for runtime config, but for passwords which are derived from profiles, these are shown as plain text.
+
+*How to fix:* Mask all log entries that should be masked with an appropriate substitute."
+,,
+KEYCLOAK-19853,Update Arquillian to version 2.5.4,
+,,
+KEYCLOAK-19847,Optimizations,
+,,
+KEYCLOAK-19833,Tab completion is not to working with ZSH,"In the current version, sourcing the completion script via `source <(./kc.sh tools completion)` does not have any effect on MacOS/ZShell.
+
+With a standalone project and picocli 4.6.1/4.6.2 completion works as expected."
+,,
+KEYCLOAK-19832,Update Keycloak.X Quarkus Distribution to 2.5.1.Final,"To stay up to date and catch possible problems early on, we want the upstream distribution to use the same version quarkus uses. Current Quarkus upstream version is [2.5.1.Final|https://github.com/quarkusio/quarkus/tree/2.5.1.Final], so we  have to update Keycloak.X's underlying Quarkus distribution to the new version.
+
+_Note: Don't forget to bump the packages used by quarkus and keycloak, found [here|https://github.com/keycloak/keycloak/blob/master/quarkus/pom.xml#L37-L48]. The respective quarkus versions can be found [here|https://github.com/quarkusio/quarkus/blob/2.5.1.Final/bom/application/pom.xml]_"
+,,
+KEYCLOAK-19831,Change docker image in containers repo to consider latest changes,"We need to change the docker image for Keycloak.X to use e.g. build instead of config, and get rid of ""/opt/jboss"". "
+,,
+KEYCLOAK-19824,"Make overriding db.url.host, database and properties possible via config","To be able to override the default properties (NOT the db.url) one has to provide the system variables kc.db.url.<host/database/properties> at the moment. This should instead be possible via cli/file/env properties, so everything can be done without touching systemproperties manually."
+,,
+KEYCLOAK-19814,Update Keycloak.X Quarkus Distribution to 2.4.2.Final,"To stay up to date and catch possible problems early on, we want the upstream distribution to use the same version quarkus uses. Current Quarkus upstream version is [2.4.2.Final|https://github.com/quarkusio/quarkus/tree/2.4.2.Final], so we  have to update Keycloak.X's underlying Quarkus distribution to the new version.
+
+_Note: Don't forget to bump the packages used by quarkus and keycloak, found [here|https://github.com/keycloak/keycloak/blob/master/quarkus/pom.xml#L37-L48]. The respective quarkus versions can be found [here|https://github.com/quarkusio/quarkus/blob/2.4.2.Final/bom/application/pom.xml]_"
+,,
+KEYCLOAK-19813,Fix Admin Console error in Windows 2016,"Error:
+https://master-jenkins-csb-keycloak-qe.apps.ocp-c1.prod.psi.redhat.com/job/universal-test-pipeline-server/927/execution/node/365/log/"
+,,
+KEYCLOAK-19812,Add triage role to keycloak-developers,
+,,
+KEYCLOAK-19808,Avoid run using wrong profile when using start command in quarkus distribution,"Change the behaviour of ./kc.sh start, so that an error msg is printed when running with the wrong profile.
+
+When you run e.g. ./kc.sh start-dev first, the built image is set to use the 'dev' profile. When you run ./kc.sh start afterwards, this command which ""should"" run in production mode, also runs the previously augmented dev profile.
+
+To make clear that start command is for production mode, it should be forbidden to run this command with dev profile, and thus an error message should be printed, hinting to running the build command first to switch the mode to the right one first."
+,,
+KEYCLOAK-19807,Add the resourceTypes query parameter to the admin clients getAdminEvents method,
+,,
+KEYCLOAK-19800,Correct API documentation link to be rest-api,"The correct directory name is rest-api, not restapi"
+,,
+KEYCLOAK-19799,"Fix ""Base tests - remote"" failures","14% of the tests on ""Base tests - remote"" suite started failing after the build 894
+
+[https://jenkins|https://master-jenkins-csb-keycloak-qe.apps.ocp-c1.prod.psi.redhat.com/job/universal-test-pipeline-server/901/execution/node/2286/log/] [.com/job/universal-test-pipeline-server/901/execution/node/2286/log/|https://master-jenkins-csb-keycloak-qe.apps.ocp-c1.prod.psi.redhat.com/job/universal-test-pipeline-server/901/execution/node/2286/log/]"
+,,
+KEYCLOAK-19798,Incorporate changes in review doc for Quarkus,
+,,
+KEYCLOAK-19792,"Update contributors document, and other documents in main repo",
+,,
+KEYCLOAK-19788,Update bug process,
+,,
+KEYCLOAK-19786,Update security policy and publish to website,
+,,
+KEYCLOAK-19785,Add GitHub issue forms to repositories,"* -keycloak-
+* -keycloak-documentation-
+* -keycloak-admin-ui: PR sent (https://github.com/keycloak/keycloak-admin-ui/pull/1508)-
+* -keycloak-quickstarts-
+* -keycloak-nodejs-admin-client: PR sent (https://github.com/keycloak/keycloak-nodejs-admin-client/pull/302)-
+* -keycloak-nodejs-connect-
+* -keycloak-operator: PR sent (https://github.com/keycloak/keycloak-operator/pull/391)-
+* -keycloak-containers-
+* -keycloak-web-"
+,,
+KEYCLOAK-19780,User mailing list link in README is outdated,"As per [https://lists.jboss.org/archives/list/keycloak-user@lists.jboss.org/thread/HXUE2IPVPB2HCD5TS3V6L7VEYQWI5JRZ/] , the user mailing list has moved to google groups in 2019.
+
+Replace ""https://lists.jboss.org/mailman/listinfo/keycloak-user"" in the README file with ""https://groups.google.com/g/keycloak-user"""
+,,
+KEYCLOAK-19777,Fix minor spelling errors in admin-console messages,
+,,
+KEYCLOAK-19776,Update the Keycloak release repository to remove problematic language,"The Keycloak release repository will be broken, after the rename from the master branch to the main branch. We just need to make sure that all the scripts are updated."
+,,
+KEYCLOAK-19774,Fix secret name escaping not modifying first character,"Currently we are escaping the name of the secret in `client_secret.go` :
+
+
+{code:java}
+func ClientSecret(cr *v1alpha1.KeycloakClient) *v1.Secret {
+ escapedClientIDName := MakeK8sCompatibleName(cr.Spec.Client.ClientID)
+ return &v1.Secret{
+ ObjectMeta: v12.ObjectMeta{
+ Name: ClientSecretName + ""-"" + escapedClientIDName,
+{code}
+
+
+But we should escape not only the ClientID  but the concatenation SecretName + ID"
+,,
+KEYCLOAK-19773,BFD and Direct Grant - inconsistent number of failures,"Number of failures for BFD is incremented in Direct Grant (ValidateUsername) even the user is temporary disabled.
+
+Related description: https://groups.google.com/g/keycloak-dev/c/CUrzhGL_uog"
+,,
+KEYCLOAK-19767,Improvements to CLI,General changes based on feedback we had.
+,,
+KEYCLOAK-19766,Update the Docker image to remove problematic language in the repository,"Make sure we've updated all files to reflect the renaming of ""master"" branch to ""main""."
+,,
+KEYCLOAK-19765,Update the operator to remove problematic language in the repository,"Make sure we've updated all files to reflect the renaming of ""master"" branch to ""main""."
+,,
+KEYCLOAK-19763,MapClientProvider.getClientByClientId should use exact search by clientId,"From javadoc of ClientLookupProvider.getClientByClientId: ""Exact search for a client by its public client identifier.""
+
+MapClientProvider.getClientByClientId uses operator ILIKE but should be using EQ."
+,,
+KEYCLOAK-19762,Update Keycloak.X Quarkus Distribution to 2.4.1.Final,"To stay up to date and catch possible problems early on, we want the upstream distribution to use the same version quarkus uses. Current Quarkus upstream version is [2.4.1.Final|https://github.com/quarkusio/quarkus/tree/2.4.1.Final], so we  have to update Keycloak.X's underlying Quarkus distribution to the new version.
+
+_Note: Don't forget to bump the packages used by quarkus and keycloak, found [here|https://github.com/keycloak/keycloak/blob/master/quarkus/pom.xml#L37-L48]. The respective quarkus versions can be found [here|https://github.com/quarkusio/quarkus/blob/2.4.1.Final/bom/application/pom.xml]_"
+,,
+KEYCLOAK-19756,Update the quickstarts to remove problematic language in the repository,After the rename of the branch in the main repository GitHub actions will fail to run because the scripts still refer to the old branch.
+,,
+KEYCLOAK-19754,Update documentation files to remove problematic language in the main repository,
+,,
+KEYCLOAK-19749,Optimize criteria when possible,Provide a way to evaluate (at least partially) the boolean expression stored in {{DefaultModelCriteria}} and optimize e.g. by replacing an OR node with at least subformula evaluated to {{true}} with (a newly introduced?) {{true}} node.
+,,
+KEYCLOAK-19748,Make generic ModelCriteriaBuilder,
+,,
+KEYCLOAK-19746,RH-SSO Operator uses outdated permissions,"The service account role for the RH-SSO Operator does not the latest changes from upstream.
+Namely:
+* Delete permissions for generic API group (causing e.g. that users can't use custom admin creds)
+* Wrong API group for Ingress"
+,,
+KEYCLOAK-19744,Update Jenkins URL on report generation code,Update Jenkins URL on report generation code and add a parameter to be able to modify it from command line
+,,
+KEYCLOAK-19726,Update return types of ModelCriteriaBuilder methods,"{{ModelCriteriaBuilder}} methods return generic {{ModelCriteriaBuilder}} but in fact they always return the same type.
+Hence the signature should be really
+
+{code:java}
+// simplified
+public interface ModelCriteriaBuilder<M, Self extends ModelCriteriaBuilder<M, Self>> {
+    Self compare(SearchableModelField<? super M> modelField, Operator op, Object... value);
+    Self and(Self... builders);
+    Self or(Self... builders);
+    Self not(Self builder);
+}
+{code}"
+,,
+KEYCLOAK-19723,Existing ECDSA key provider's key pair is not regenerated when its curve is changed on Admin Console,"On Admin console, when we change the curve of existing ECDSA key provider (e.g. P-256 to P-521), its key pair is not regenerated. It should be regenerated.
+"
+,,
+KEYCLOAK-19721,Server error (NullPointerException) when trying to view users using KeycloakServer,"It looks like afc5cb4d1450d6b966b96a646644cbb62934d7a3 ([https://github.com/keycloak/keycloak/pull/8513)] may have introduced this issue. If I revert this commit, the problem goes away."
+,,
+KEYCLOAK-19712,Correct typo,"Correct section heading:  Asssiging Role Mappings
+"
+,,
+KEYCLOAK-19711,Better directory structure for generated files,"At the moment we are:
+- generating the tmp directory directly in the distribution base dir. It's better suited in {home}/data/tmp, so we should move it there.
+
+- creating the database files for h2-file directly in the data directory. They should get a more explicit subfolder called ""h2""."
+,,
+KEYCLOAK-19710,[7.5.x] Cannot override modules for Infinispan subsystem in distribution,"The _infinispan-dist-web_ feature group for server distribution contains cache with name _routing_, which has changed its type of cache from _distributable_ to _replicated_ for WF galleon. It has especially impact on _migrate-domain-clustered.cli_ script. It's not possible to override default Infinispan modules for domain-clustered.
+
+The distribution contains file _domain.xml_ with changed type of cache.
+{code:java}
+<feature spec=""subsystem.infinispan.cache-container.replicated-cache"">
+    <param name=""replicated-cache"" value=""routing""/>
+</feature>
+{code}
+However, the script still searching for _distibuted_ cache and if the searching is unsuccessful, the cache is added to the profile. But it's the core of the issue; the addition of the cache fails, because cache `routing` already exists.
+{code:java}
+Adding distributed cache routing to web cache container to infinispan subsystem
+{
+    ""outcome"" => ""failed"",
+    ""failure-description"" => {""domain-failure-description"" => ""WFLYCTL0436: Cannot register capability 'org.wildfly.clustering.cache.group.web.routing' at location '[
+    (\""profile\"" => \""auth-server-clustered\""),
+    (\""subsystem\"" => \""infinispan\""),
+    (\""cache-container\"" => \""web\""),
+    (\""distributed-cache\"" => \""routing\"")
+]' as it is already registered in context 'profile=auth-server-clustered' at location(s) '[[
+    (\""profile\"" => \""auth-server-clustered\""),
+    (\""subsystem\"" => \""infinispan\""),
+    (\""cache-container\"" => \""web\""),
+    (\""replicated-cache\"" => \""routing\"")
+]]'""},
+    ""rolled-back"" => true
+}{code}
+It should be possible to use our own infinispan settings."
+,,
+KEYCLOAK-19709,Remove MapStorage.createCriteriaBuilder,Replace with {{DefaultModelCriteria}} introduced in KEYCLOAK-18854.
+,,
+KEYCLOAK-19700,Attempt to reuse denied device authorization code results in server error,"If you deny consent for a device, and then attempt to retry with the code, instead of seeing the consent denied error, you see a server error due to NullPointerException. The code attempts to continue and create a client session even though the device code model has no client ID serialized after the denial. I will submit a PR for a fix."
+,,
+KEYCLOAK-19699,RSA key provider with key use = enc cannot select corresponding algorithm on Admin Console,"When creating RSA key provider with key use = enc on Admin Console (/auth/admin/master/console/#/create/keys/\{realm}/providers/rsa-generated), an administrator cannot select its corresponding algorithm.
+
+By using RSA key provider, the current keycloak has supported key encryption described in 
+ [https://datatracker.ietf.org/doc/html/rfc7518#section-4.1], Namely, .RSA1_5, RSA-OAEP, RSA-OAEP-256.
+
+Therefore, keycloak admin console needs to show these algorithms on ""Algorithm"" pulldown menu."
+,,
+KEYCLOAK-19687,Move parsing of cluster config to build time,"By moving XML parsing at runtime when bootstrapping ISPN we should save some time during startup.
+
+This only applies to the cache container configuration (e.g.: cluster-local.xml and cluster-default.xml). The transport configuration set using {{--cluster-stack}} is already parsed at runtime."
+,,
+KEYCLOAK-19686,Include latest script changes in kc.bat,The batch script kc.bat should reflect the latest changes we did to our kc.sh script and provide the same functionality.
+,,
+KEYCLOAK-19681,Remove unused package-lock.json file in the main repository,"The [package-lock.json|https://github.com/keycloak/keycloak/blob/master/package-lock.json] file inside the Keycloak repository is not used by any of our modules, we should remove that to prevent confusion and misusage. "
+,,
+KEYCLOAK-19617,Simplify creation of custom user profiles,"When implementation a custom user profile based on {{DeclarativeUserProfileProvider}} one has to provide an own implementation of the {{DeclarativeUserProfileModel}} and to override the methods {{configureUserProfile()}} and {{getComponentModel()}} of {{DeclarativeUserProfileProvider}} (besides others).
+
+Since especially the {{configureUserProfile()}} method is very complex it is very likely that code based on the current implementation breaks easily with new keycloak versions.
+
+This PR changes the creation of the {{DeclarativeUserProfileModel}} to receive its id from the caller, so that a custom user profile implementation derived from {{DeclarativeUserProfileProvider}} can store and load its configuration without the need to re-implement the component model class and the methods mentioned above.
+
+Remaining methods that need to be overridden for custom user profile providers are the constructors, {{getId()}} and the 3 {{create()}} methods. This makes the interface leaner and more stable.
+
+See also discussion User Profile: Adding information on update on the [keycloak dev group|https://groups.google.com/g/keycloak-dev/c/Xvj0uiK8iyY]."
+,,
+KEYCLOAK-19607,[7.5.z] AttributeConsumingService Bug in SAML SP metadata,See KEYCLOAK-19388
+,,
+KEYCLOAK-19599,Update Keycloak.X Quarkus Distribution to 2.4.0.Final,"To stay up to date and catch possible problems early on, we want the upstream distribution to use the same version quarkus uses. Current Quarkus upstream version is [2.4.0.Final|https://github.com/quarkusio/quarkus/tree/2.4.0.Final], so we  have to update Keycloak.X's underlying Quarkus distribution to the new version.
+
+_Note: Don't forget to bump the packages used by quarkus and keycloak, found [here|https://github.com/keycloak/keycloak/blob/master/quarkus/pom.xml#L37-L48]. The respective quarkus versions can be found [here|https://github.com/quarkusio/quarkus/blob/2.4.0.Final/bom/application/pom.xml]_"
+,,
+KEYCLOAK-19593,Remove CRUD operations from MapStorage interface,
+,,
+KEYCLOAK-19590,Fix typo in type definitions in the Node.js adapter,Type definitions contain a typo Gaurd => Guard
+,,
+KEYCLOAK-19582,Update Keycloak.X Quarkus Distribution to 2.4.0.CR1,"To stay up to date and catch possible problems early on, we want the upstream distribution to use the same version quarkus uses. Current Quarkus upstream version is [2.4.0.CR1|https://github.com/quarkusio/quarkus/tree/2.4.0.CR1], so we  have to update Keycloak.X's underlying Quarkus distribution to the new version.
+
+_Note: Don't forget to bump the packages used by quarkus and keycloak, found [here|https://github.com/keycloak/keycloak/blob/master/quarkus/pom.xml#L37-L48]. The respective quarkus versions can be found [here|https://github.com/quarkusio/quarkus/blob/2.4.0.CR1/bom/application/pom.xml]_"
+,,
+KEYCLOAK-19575,Different user authenticated results in server error instead of bad request,"I was investigating a 500 error in our server logs and came across this one. From what I can tell, this is semantically in the ""bad request"" category and not an internal server error (there is no bug or operational problem for me to fix).
+
+In [AuthenticationProcessor|https://github.com/keycloak/keycloak/blob/00feef4dbe9c465cc9c4ddd0fd999959038f3219/services/src/main/java/org/keycloak/authentication/AuthenticationProcessor.java#L1045]:
+
+{code:java}
+                // We have existing userSession even if it wasn't attached to authenticator. Could happen if SSO authentication was ignored (eg. prompt=login) and in some other cases.
+                // We need to handle case when different user was used
+                logger.debugf(""No SSO login, but found existing userSession with ID '%s' after finished authentication."", userSession.getId());
+                if (!authSession.getAuthenticatedUser().equals(userSession.getUser())) {
+                    event.detail(Details.EXISTING_USER, userSession.getUser().getId());
+                    event.error(Errors.DIFFERENT_USER_AUTHENTICATED);
+                    throw new ErrorPageException(session, authSession, Response.Status.INTERNAL_SERVER_ERROR, Messages.DIFFERENT_USER_AUTHENTICATED, userSession.getUser().getUsername());
+                }
+{code}
+
+
+I traced this back to https://issues.redhat.com/browse/KEYCLOAK-5567 and I wonder if this one was just a mistake as the issue is about errors which should be 4xx errors and all the other errors changed in that PR (with one exception that isn't in the code base anymore) were changed to be 4xx errors."
+,,
+KEYCLOAK-19571,Add indices to fields,We need to speed up queries with indices. We need to identify fields that should be indexed. We need to find out whether it is possible to create compound indices.
+,,
+KEYCLOAK-19570,Investigate implementing HotRod getters/setters using annotation processing,
+,,
+KEYCLOAK-19565,Client Policies : Wrong SecureLogoutExecutor's provider ID,"The current SecureLogoutExecutor's provider ID is PKCEEnforcerExecutorFactory.PROVIDER_ID.
+
+It should be SecureLogoutExecutorFactory.PROVIDER_ID.
+"
+,,
+KEYCLOAK-19564,Avoid split packages in Dist.X,"Our modules suffer from split packages and that is not a good practice and something not allowed by JDK 9+.
+
+Even though we don't have Keycloak modularized, we should avoid this problem in order to achieve a faster class loading mechanism in Dist.X."
+,,
+KEYCLOAK-19562,Implementation of generic trees,
+,,
+KEYCLOAK-19559,Support custom JPA model,"Add support for custom JPA model, similarly to Wildfly distribution."
+,,
+KEYCLOAK-19558,Deploy on dual-stack ocp4.8 fails,"Deploying sso via argocd operator on a dual-stack Openshift cluster fails because IP_ADDR contains both IPs (ipv6 and ipv4). The content of $IP_ADDR is directly used to create the starting parms for -bIPV6<space>IPV6. Something not accepted by standalone.sh
+
+ 
+
+++ eval configure
++++ configure
++++ configure_ha
+++++ hostname -i
++++ IP_ADDR='fd02:0:0:6::88 10.129.2.136'
++++ JBOSS_HA_ARGS='-b fd02:0:0:6::88 10.129.2.136 -bprivate fd02:0:0:6::88 10.129.2.136'
+
+Which then gives:
+
+JBOSS_HA_ARGS='-b fd02:0:0:6::88 10.129.2.136 -bprivate fd02:0:0:6::88 10.129.2.136 -Djboss.node.name=keycloak-3-btxz6'"
+,,
+KEYCLOAK-19557,"Misleading label for client parameter ""Pushed Authorization Request Enabled""","When open the client in the admin console, there is parameter ""Pushed Authorization Request Enabled"". When true, the PAR is required for this particular client.
+
+The correct label should be something like ""Pushed Authorization Request Required"" . The label with ""Enabled"" in the end is misleading. But I've checked that tooltip text for this parameter is OK"
+,,
+KEYCLOAK-19553,Fix JWTClientAuthenticator and JWTClientSecretAuthenticator usage in Keycloak.X for calls with mediatype json,"At the moment, the execution of these authenticators fails due to the fact that quarkus uses a newer Resteasy version, which throws an exception when calling {{getDecodedFormParameters}} with e.g. a Request of Content-Type {{application/json}}, or more general for every request which is not using the right content type {{x-www-form-urlencoded}}. 
+
+This behaviour can be observed for example when invoking the {{OpenShiftTokenReviewEndpoint}}.
+
+The old implementation of Resteasy used in the wildfly dist. returns an empty MultivaluedMap instead.
+
+To fix this behaviour, for now we should check the mediaType in these authenticators and only make the call if the actual request is a request which is compatible  .
+
+ 
+
+_Note: A better fix would be to filter out the potential authenticators beforehand using the Content-Type of the request as a decision base, so that for requests with `application/json` the authenticators relying on form params would not be invoked in the first place. As this is a kind of sensitive area of the code, I'll create a github discussion for this proposal first._"
+,,
+KEYCLOAK-19552,[7.5.z] reflected XSS on clients-registrations endpoint,"Hello,
+
+My name is Quentin TEXIER.
+I am pentester in the French company name ""OpenCyber"".
+
+During one mission, I discovered a vulnerability on the endpoint ""/auth/realms/master/clients-registrations/default"".
+
+Indeed this endpoint is vulnerable to an XSS (Cross Site Scripting).
+It allows to execute javascript code on the client side.
+
+To do this you need to post the following payload using a ""POST"" request on this endpoint:
+{code:java}
+{""<script>alert('Quentin TEXIER - OpenCyber - XSS')</script>"" : ""test"",}
+{code}
+The javascript will be executed and the alert popup will be appear.
+
+We can therefore easily imagine an attack scenario where the attacker prepares the post request on his website. (html form auto sent)
+The attacker will just have to provide the url to the victim who when she will click on it will see the XSS executed on her web-browser.
+
+An XSS can be used to retrieve cookies or perform actions without the victim's consent.
+
+You can find screenshots in the attachment.
+
+
+Feel free to contact me if you need more informations.
+
+Have a nice day.
+
+Regards,
+
+Quentin TEXIER
+Pentester
+OpenCyber"
+,,
+KEYCLOAK-19550,Completely remove Zocial CSS components,The Zocial components are deprecated and no longer used in project. It'd be great to get rid off those components.
+,,
+KEYCLOAK-19549,Specify unsupported features in docs,"This included Embedded DB and DB Backup. Additionally, we need to explicitly state that {{v1alpha1}} CRDs _are_ supported and we do not plan to do any breaking changes."
+,,
+KEYCLOAK-19548,Mark embedded DB and DB backup as deprecated,"This includes CRDs, READMEs, examples, ..."
+,,
+KEYCLOAK-19547,Improve Reliability of Keycloak.X Arquillian Container,"From time to time, the base testsuite for quarkus fails when restarting the server in the tests. see e.g. this run: [https://github.com/keycloak/keycloak/actions/runs/1333463456] 
+
+{code:java}
+DeployedScriptMapperTest ++ [INFO] Exception in thread ""main"" java.nio.file.NoSuchFileException: /home/runner/work/keycloak/keycloak/testsuite/integration-arquillian/tests/base/target/containers/auth-server-quarkus/lib/quarkus/quarkus-application.dat
+DeployedScriptMapperTest ++ [INFO] 	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:116)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:219)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/java.nio.file.Files.newByteChannel(Files.java:371)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/java.nio.file.Files.newByteChannel(Files.java:422)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/java.nio.file.spi.FileSystemProvider.newInputStream(FileSystemProvider.java:420)
+DeployedScriptMapperTest ++ [INFO] 	at java.base/java.nio.file.Files.newInputStream(Files.java:156)
+DeployedScriptMapperTest ++ [INFO] 	at io.quarkus.bootstrap.runner.QuarkusEntryPoint.doRun(QuarkusEntryPoint.java:41)
+DeployedScriptMapperTest ++ [INFO] 	at io.quarkus.bootstrap.runner.QuarkusEntryPoint.main(QuarkusEntryPoint.java:25)
+{code}
+
+Guess: That happens when the runners have high load and we reaugment things, and the current timelimit of 10s is reached.
+
+{code:java}
+if (isReaugmentBeforeStart()) {
+            ...
+            reaugment.directory(wrkDir).inheritIO();
+
+            try {
+                log.infof(""Re-building the server with the new configuration"");
+                reaugment.start().waitFor(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(""Timeout while waiting for re-augmentation"", e);
+            }
+        }
+{code}
+
+So instead of relying on actual time, and thus having an unreliable CI, we want to use the `auto-build` functionality which was implemented in KEYCLOAK-19426. "
+,,
+KEYCLOAK-19540,FAPI 2.0 Baseline : Reject Resource Owner Password Credentials Grant,"[The draft version of FAPI 2.0 Baseline|https://bitbucket.org/openid/fapi/src/master/FAPI_2_0_Baseline_Profile.md] says that an authorization server shall reject resource owner password credentials grant.
+
+To satisfy FAPI 2.0 Baseline, keycloak needs to reject reject resource owner password credentials grant.
+
+An executor execute the following logics :
+* Enforce client setting on client registration/update
+* Reject a request regardless of client setting"
+,,
+KEYCLOAK-19536,Removal of client creates new instance of provider for each client role,"Some operations publishes {{RoleRemovedEvent}}. Some listeners registered to this event creates new instance of provider for each role. 
+
+During creation of new Map*Provider new transaction is created and enlisted. "
+,,
+KEYCLOAK-19532,Finnish locales,I would like to add finnish translations.
+,,
+KEYCLOAK-19525,Inconsistent creation of default-roles-<realm>,"While RealmManager.java creates `default-roles-<realmName>`, during the migration (in JpaUpdate13_0_0_MigrateDefaultRoles.java) is created role `default-roles-<realmId>`.
+
+Originally reported by [~victorphilipp]: https://issues.redhat.com/browse/KEYCLOAK-19263?focusedCommentId=19049944&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-19049944"
+,,
+KEYCLOAK-19522,Update Czech translation of login messages,
+,,
+KEYCLOAK-19521,HTML Resource Path gets not set right after reaugmenting Keycloak.X,"After reaugmentation, the resource Tag does not get applied anymore to the resourcepath of the delivered html. so, instead of `.../resources/abcde/...` the actual version (resources/16.../) is used instead of the random 5 chars which should be created and used by the QuarkusWelcomePage. "
+,,
+KEYCLOAK-19510,"Nested JWT's JOSE header needs to set ""JWT"" to ""cty"" field","According to [RFC 7519 JWT section 5.2|https://datatracker.ietf.org/doc/html/rfc7519#section-5.2], a nested JWT (signed and encrypted JWT) needs to set ""JWT"" to its JOSE Header's ""cty"" field. The current keycloak does not follow it.
+
+The current keycloak generates a signed and encrypted JWT for the following tokens :
+
+* ID Token
+* JARM authorization response
+
+Keycloak need to follow it if these are signed and encrypted.
+
+The current keycloak receives a signed and encrypted JWT for the following tokens :
+
+* Request Object (created by a client)
+
+Keycloak needs not to check ""cty"" field because some of the existing client may send this nested JWT Request Object without ""cty"" field and keycloak accepts it. If keycloak checked it, such these client's nested JWT Request Object would not be accepted.  
+"
+,,
+KEYCLOAK-19505,Create delegates automatically from an interface,
+,,
+KEYCLOAK-19503,Keycloak Operator fails to create secret when client id contains special chars,"When using the Keycloak operator to register SAML Client we face some limitation.
+
+In SAML entityID are supposed to be URL, this value is conveyed via the ClientID field of the KeycloakClient CR when protocol is set to SAML.
+
+However with such clientID value when the operator processes it and tries to create the kubernetes secret for a client secret it fails as ':' and '/'' are invalid chars for kubernetes secret names.
+
+ 
+
+First client secret does not exist for SAML client so creation of the kubernetes secret could be skipped, second secret name could be sanitized to avoid such failure."
+,,
+KEYCLOAK-19496,Unignore ArtifactBindingCustomResolverTest + fix @SetDefaultProvider annotation in testsuite for Keycloak.X,"There seems to be something wrong with the @SetDefaultProvider annotation for quarkus. Investigate and fix it, to make the ArtifactBindingCustomResolverTests testCustomArtifact-Test work, which relies on a custom provider(CustomTestingSamlArtifactResolverFactory)  to be used."
+,,
+KEYCLOAK-19492,Include WebAuthn tests to pipeline,
+,,
+KEYCLOAK-19491,Merge error in SAML Identity Broker documentation ,"Commit c2fdee2d2d07e4255a8fedf4fac7ec783a9794ef introduced a small typo in file server_admin/topics/identity-broker/saml.adoc that breaks formatting for the table that describes the SAML parameters.
+
+PR is ready for review."
+,,
+KEYCLOAK-19490,Add more details about 2FA to authenticate page,"It'd be great to add more details about 2FA to WebAuthn authenticate page. User is not aware about the provided authenticator, where the name of the authenticator is unknown and its properties as well. At least add the name of the authenticator to the page would be sufficient. It'd improve UX a lot."
+,,
+KEYCLOAK-19489,Verify WebAuthn settings in admin console,
+,,
+KEYCLOAK-19487,Test cases for managing 2FA authenticators in account console,"There should be included test cases for account console and managing the 2FA itself. It should be possible to ensure the WebAuthn authenticators are properly created, modified and deleted."
+,,
+KEYCLOAK-19486,Verify the WebAuthn functionality and settings for registration,"It's necessary to verify proper creation of WebAuthn credentials and its parameters. Specifically to be sure those parameters are properly parsed and used within the registration itself. f.e. testCase for missing authenticator attachment, not specified requirement for resident key etc."
+,,
+KEYCLOAK-19484,Unignore BasicSamlTests testNoPortInDestination,"-Dtest=BasicSamlTest#testNoPortInDestination 
+is failing due to missing config for the saml ports. Re-enable by adding the appropriate config value to the kc.x config of auth-server-quarkus and the arquillian container."
+,,
+KEYCLOAK-19482,Create cloners automatically from an interface,Introduce utility methods for each entity that deep clones one entity from another of the same type (eg. clones a MapClientEntity to another MapClientEntity). This is needed to e.g. clone values from JPA to Infinispan entity for the sake of caching. These utility methods should be created and maintained automatically
+,,
+KEYCLOAK-19481,Introduce default constructors for entities,Some entities require ID and some other parameter in their constructor. This will be replaced by making the fields mutable (by introducing {{setId()}} and other setters).
+,,
+KEYCLOAK-19480,Introduce ProtocolMapperEntity,ProtocolMapperModel is used in MapClientEntity rather than ProtocolMapperEntity. This spoils the whole point of the entities and needs to be fixed.
+,,
+KEYCLOAK-19476,Unignore LoginTest#loginWithLongRedirectUri for Keycloak.X,"See KEYCLOAK-12473 - we have to set the config value for quarkus to truncate the stored representation in the db to a given max-detail-length of e.g. 2000 characters. (db representation is limited at 2550 fields, in the test we are creating a random string of 2500 characters, plus 75 characters of the rest of the url, plus other details => fails)"
+,,
+KEYCLOAK-19469,Delete old demo from examples,The old demo from examples is no longer maintained and has been replaced by QuickStarts so should be deleted.
+,,
+KEYCLOAK-19467,Missing noopener/noreferrer in links,
+,,
+KEYCLOAK-19463,Unignore PasswordPolicyTest,"-Dtest=PassworPolicyTest#testBlacklistPasswordPolicyWithTestBlacklist
+
+ is failing because the .txt file is not included and the path is not set for the auth server.
+
+-> Add txt file to target of authserverquarkus and "
+,,
+KEYCLOAK-19461,Re-Enable OpenShift-related tests in testsuite,"-Dtest=OpenshiftClientStorageTest
+
+-Dtest=OpenShiftTokenReviewEndpointTest
+
+are failing when enabled for quarkus right now. We need to investigate why they fail and fix the tests."
+,,
+KEYCLOAK-19459,Re-Enable ClientSearchTest,"_ClientSearchTest_ is excluded from the testsuite right now. In order to re-enable it, we need support for comma-separated values from the CLI, which will be done in KEYCLOAK-19425. "
+,,
+KEYCLOAK-19457,Fix migration tests in CI.,"The following migration tests are currently ignored in the testsuite for quarkus:
+|-Dtest=JsonFileImport1301MigrationClientPoliciesTest|
+|-Dtest=JsonFileImport198MigrationTest|
+|-Dtest=JsonFileImport255MigrationTest|
+|-Dtest=JsonFileImport343MigrationTest|
+|-Dtest=JsonFileImport483MigrationTest|
+
+In Isolation, they run, in the testsuite they don't under some circumstances.
+
+to create a failing example locally, remove the quarkus exclusion from e.g.  JsonFileImport198MigrationTest and run the following mvn command:
+
+mvn clean install -nsu -B -Pauth-server-quarkus -Dtest='AccountRestServiceWithUserProfileTest#testGetUserProfileMetadata_EditUsernameAllowed,JsonFileImport198MigrationTest' -f testsuite/integration-arquillian/tests/base/pom.xml"
+,,
+KEYCLOAK-19446,Remove theme dir from default configuration,"We do not need the {{spi.theme.folder.dir}} set in the configuration. By removing it, we avoid confusion (KEYCLOAK-13770) and make configuration easier.
+
+For that, we should implement a custom {{org.keycloak.theme.FolderThemeProviderFactory}} so that we default to the expected directory within the distribution if none was set."
+,,
+KEYCLOAK-19442,Support configuring SSL for Postgres in the Operator,Add support for specifying SSL mode in db-secret which will be passed down to the Keycloak image as an environmental variable.
+,,
+KEYCLOAK-19438,Invalid link in the docs for the OpenBanking Brasil,
+,,
+KEYCLOAK-19430,Revert deletion of RandomString,"As part of KEYCLOAK-19408 RandomString in core was deleted, but as it may be used by some it should be reverted and marked as deprecated instead."
+,,
+KEYCLOAK-19427,Upgrade to Quarkus 2.3.0.Final,
+,,
+KEYCLOAK-19426,Provide a --auto-build CLI option to enable dynamic re-aug when starting the server,"As discussed, we should be more flexible and do not force re-augmentation even though you are changing build-time properties (e.g.: database) when starting the server (in production, not dev mode).
+
+For that, we should enable users to use a {{--auto-build}} option that when used together with the {{start}} command is going to mimic the behavior introduced by KEYCLOAK- 19306 .
+
+The idea here is to give users an option to sacrifice startup time (due to the additional step at startup to re-build the server) if they are OK with it.
+"
+,,
+KEYCLOAK-19425,Allow comma-seperated lists as values for config CLI.,"Right now we're using a comma as a seperator for the Keycloak.X CLI arguments. Thus, it's not possible to e.g. run the following command:
+
+_./kc.sh config --spi-client-jpa-searchable-attributes=bar,foo_
+
+Because the CLI parser expects another argument (starting with --) after the comma between bar and foo. 
+
+To allow comma-separated lists of values in the CLI (and make e.g. _ClientSearchTest_ work with quarkus), we need to change the separator from comma to another one which would not be used in values, so a commonly used pattern like %% or similar would be the way to go."
+,,
+KEYCLOAK-19424,"Rename the ""config"" command to ""build""","As discussed, we should rename the {{config}} command to {{build}} as this name represents better what is happening when running the command."
+,,
+KEYCLOAK-19420,[7.5.z] Simplify the RHSSO setup in an OpenShift Disconnected cluster,"Hi Team, 
+
+We are using OpenShift v4 IdP in Keycloak for enabling `Login with OpenShift` for our application. This requires the RHSSO container to communicate with the OpenShift OAuth server route.
+
+This works like a magic without any additional configuration in a plain OCP cluster, However for a disconnected OpenShift cluster, we need to perform the below additional steps. 
+[https://www.keycloak.org/docs/latest/server_installation/index.html#outgoing-http-requests]
+
+This blocks the scope for automation in case of a Disconnected cluster."
+,,
+KEYCLOAK-19419,[7.5.z] Support OpenShift login using kubeadmin user.,"This is regarding keycloak and openshift integration. kubeadmin is a default user in a vanilla openshift cluster, although openshift recommends deleting the user post installation, many users would still have it in their stage, test or dev clusters where they carry out most of their POCs and tests. 
+
+Keycloak does not support login with kubeadmin because the openshift-v4 Keycloak identity provider requires a non-null uid in order to be able to link the openshift user to the Keycloak user and incase of kubeadmin the user profile metadata doesn't contain such a uid. Is it a very nice feature to have for not only our product but I think also for other openshift projects consuming Keycloak."
+,,
+KEYCLOAK-19413,Allow to set login_hint on registration and forgot_credentials pages,"Hello,
+
+In some use cases, it may be useful to allow login_hint to be passed in parameters of registration form and forgot_credentials form.
+
+In my case, users have already typed their username on a referrer page, so I would like to avoid to ask them to re-type it."
+,,
+KEYCLOAK-19410,Compile issues in IntelliJ due to imports of sun packages,"DeploymentArchiveProcessorUtils:
+
+* java: package sun.applet does not exist
+
+DockerClientTest:
+
+* java: package sun.security.provider does not exist"
+,,
+KEYCLOAK-19408,Better client secrets,https://github.com/keycloak/keycloak/discussions/8477
+,,
+KEYCLOAK-19403,Java 1.8 APIs used in modules marked for 1.7,"We have some maven modules that use Java 1.8 APIs, while the POM set target/source Java to 1.7. This is causing issues when building in IntelliJ with Java 11, but not from Maven. In IntelliJ the build fails with warnings like:
+{code}
+java: cannot find symbol
+  symbol:   variable ACCESS_EXTERNAL_DTD
+  location: class javax.xml.XMLConstants
+{code}
+
+authz/client:
+
+* https://github.com/keycloak/keycloak/blob/69a146db7e91afdbc6935300b6975fa52a376eed/authz/client/pom.xml#L21
+* https://github.com/keycloak/keycloak/blob/69a146db7e91afdbc6935300b6975fa52a376eed/authz/client/src/main/java/org/keycloak/authorization/client/AuthzClient.java#L72
+
+adapters/oidc/fuse7/camel-undertow:
+
+* https://github.com/keycloak/keycloak/blob/master/adapters/oidc/fuse7/camel-undertow/pom.xml#L34
+* https://github.com/keycloak/keycloak/blob/69a146db7e91afdbc6935300b6975fa52a376eed/adapters/oidc/fuse7/camel-undertow/src/main/java/org/keycloak/adapters/camel/undertow/UndertowKeycloakConsumer.java#L171
+
+saml-core:
+
+* https://github.com/keycloak/keycloak/blob/69a146db7e91afdbc6935300b6975fa52a376eed/saml-core/pom.xml#L34
+* https://github.com/keycloak/keycloak/blob/69a146db7e91afdbc6935300b6975fa52a376eed/saml-core/src/main/java/org/keycloak/saml/common/util/TransformerUtil.java#L119
+
+saml-core is a bit strange as XMLConstants.ACCESS_EXTERNAL_DTD should be available since 1.7, but still causes the issue in IntelliJ unless Java is set to 1.8 in pom.xml
+"
+,,
+KEYCLOAK-19396,Unexpected log message when starting the server,"When starting the server, the following message is shown in logs:
+
+{code}
+LogManager error of type WRITE_FAILURE: The delayed handler's queue was overrun and log record(s) were lost. Did you forget to configure logging?
+{code}
+
+The cause seems to be related with the {{QuarkusDelayedHandler}} exceeding the limit of the log entries in the queue. It is possible to avoid this error by setting the following system property when starting the server:
+
+{code}
+ -Dquarkus-log-max-startup-records=100000 
+{code}
+
+By default, the limit is set to 4000 if that property is not set.
+
+This could be something we need from Quarkus so that it might be necessary to create an issue there prior to using the aforementioned property to fix the issue."
+,,
+KEYCLOAK-19388,AttributeConsumingService Bug in SAML SP metadata,"*Motivation:*
+
+Keycloak version 15.0.0 introduced the AttributeConsumingService element in the SAML SP metadata. This is a useful feature since it allows mapping Attribute Importers into RequestedAttribute elements within the AttributeConsumingService. However the current implementation does not comply with the [SAML Metadata Specification|https://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf]. Specifically:
+* The AttributeConsumingService element is included in Keycloak’s SAML SP metadata by default, even if no RequestedAttribute elements are specified
+* The ServiceName element is added only if the Attribute Consuming Service Name is set
+
+According to the [SAML Metadata Specification|https://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf], the AttributeConsumingService is optional (Zero or More) but when included it requires:
+* one or more RequestedAttribute elements
+* one or more ServiceName elements
+
+As a result, the default Keycloak SP metadata are deemed as invalid by SAML IdP software (e.g. SimpleSAMLphp) that performs metadata schema validation. Effectively, users can not login with these SAML IdPs, unless the Keycloak configuration includes a Service Name and one or more Attribute Importers.
+
+*Proposal: *
+
+In order to be compliant with the [SAML Metadata Specification|https://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf], we propose the following:
+# The AttributeConsumingService is added to the SP metadata only when at least one Attribute Importer Mapper exists
+# The Attribute Consuming Service Name has default value the realm display name when configured, otherwise equal to the realm name. When the AttributeConsumingService is not required for the SP metadata (see point 1) then the Attribute Consuming Service Name is ignored.
+"
+,,
+KEYCLOAK-19380,Import action only run during init schema and requiring a full configured server,The import action is only running when the database is not initialized. It also requires a fully configured server (e.g.: TLS) to run.
+,,
+KEYCLOAK-19375,misleading Admin UI name for no-cookie-redirect Authenticator,"In the Admin UI, the NoCookieFlowRedirectAuthenticator is simply called Browser Redirect/Refresh which gives the impression that it is a generic redirector (which would be a cool Authenticator). My PR proposes to change this to something like ""Browser Redirect for Cookie free authentication"" (other suggestions appreciated)."
+,,
+KEYCLOAK-19374,Create implementations automatically from an interface: Map*EntityImpl,"Currently, Map*Entity implementation is maintained by a developer, so changes in the interface need to be manually propagated to the implementation. This increases maintenance cost and is also error-prone due to the need to update the {{isUpdated}} method.
+
+Create a map-based implementation of the Map*Entity interface based on an interface that would be generated automatically using javac annotation processing."
+,,
+KEYCLOAK-19373,Update Quarkus to 2.2.3.Final,
+,,
+KEYCLOAK-19371,Keycloak UI showing weird labels on cent OS 7,"Hi Team,
+
+I am facing some weird issue with Admin console UI on cent OS. This is with the latest version i.e. 15.0.2.
+
+Please find steps to reduce and UI screenshot.
+
+ 
+
+Thank you,
+
+Ganesh"
+,,
+KEYCLOAK-19362,"Federated via AD, user not deleted within Keycloak when AD user is not a member of the AD group anymore","I setup a federation with a custom user ldap filter (&(objectCategory=Person)(sAMAccountName=*)(memberOf=cn=ADgroup,ou=TestGroups,ou=TestOrg,dc=domain,dc=local))
+
+I was inspecting that when a AD user got removed from de AD group, the user will get deleted from keycloak. This is not the case. Is there a way to managed this?
+
+ "
+,,
+KEYCLOAK-19344,Add CORS to Device Authorization Request,"Add CORS headers to the Device Authorization Request (OAuth 2.0 Device Authorization Grant) to make it available for non-confidential public webbrowser based clients, e.g. SPA like signage or kiosk webapps."
+,,
+KEYCLOAK-19313,Allow to configure the name format in Attribute Importer IdP Mapper,"Keycloak from version 15.0.0 supports adding the attributes defined as Attribute Importer IdP Mappers to a list of {{<RequestedAttribute>}} elements of the {{<AttributeConsumingService>}} element of the SAML SP metadata. However, the attribute name format of the RequestedAttribute currently defaults to {{urn:oasis:names:tc:SAML:2.0:attrname-format:basic}}. It must be possible to configure a different format such as {{urn:oasis:names:tc:SAML:2.0:attrname-format:uri}} which is required in many profiles (e.g. eIDAS SAML Attribute Profile - Version 1.2). In many SAML IdPs current produced SP metadata is not working.
+
+The following formats should at least be supported:
+ # {{urn:oasis:names:tc:SAML:2.0:attrname-format:uri}},
+ # {{urn:oasis:names:tc:SAML:2.0:attrname-format:basic}} and
+ # {{urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified}}
+
+Select field NameFormat will be added to Attribute Importer IdP Mapper and this value will be put in name format of the RequestedAttribute.{{}}"
+,,
+KEYCLOAK-19311,Improve test coverage for Quarkus distribution,"Currently, our test coverage is limited to:
+
+* Running unit tests to check configuration
+* Basic tests to make sure the distribution can start
+* Health and Metrics test
+
+We should have more integration tests, covering the different aspects/usages of CLI:
+
+* Make sure the commands we support are working as expected
+* Make sure re-augmentation works as expected for some critical scenarios such as setting up database
+* Make sure providers can be deployed and properly configured
+* Make sure we can test providers easily by leveraging CDI
+
+All that should be based on the capabilities provided by Quarkus that make testing and developing an easy and nice experience.
+
+Perhaps the baseground we can use in the future to also build functional tests on top of it."
+,,
+KEYCLOAK-19310,Support for more databases,"Currently, we support a small set of databases and we lack others such as Oracle, and MSSQL.
+
+We should evaluate how we can support more databases based on what databases we are missing from Quarkus and if we can be more flexible and support any database driver.
+
+It should involve investigating how far Quarkus is opinionated about the databases it supports."
+,,
+KEYCLOAK-19309,Auto-complete options and commands,"To achieve a better UX and make CLI easier, we should evaluate if it is possible to enable auto-complete."
+,,
+KEYCLOAK-19308,Improve readbility of help message,"The help message should be improved in order to present the available configuration options and commands easier to read and follow.
+
+We are pretty much printing out all of them with some basic grouping. Perhaps we can:
+
+* Have more groups for grouping correlated options and commands
+* Provide some mechanism to better filter out items in help message (or using {{grep}} is enough?)
+* Evaluate if the format we are using is the best or can be improved"
+,,
+KEYCLOAK-19307,Provide hints about how to use CLI options and commands,"In order to improve UX and make Dist.X self-documented, we should provide more hints about how to use our options and commands."
+,,
+KEYCLOAK-19306,Dynamically decide whether re-augmentation should happen,"One of the main UX issues we have is around the usage of the {{config}} command to re-augment the server based on any of the available static configuration options such as database.
+
+In order to give a better UX, re-augmentation should be done dynamically based on a comparation of the options already set and those being passed when running the server.
+
+The overall idea is to avoid forcing users to run the {{config}} command every time they want to change a static property (e.g.: database)."
+,,
+KEYCLOAK-19305,Document how to mark a provider as the default,"The Configuration Design Document is missing the information about how to mark a provider as a default. It only covers how to enable/disable providers.
+
+We should document how to enable providers by running:
+
+{code}
+./kc.sh config --spi-x509cert-lookup-provider=nginx
+{code}"
+,,
+KEYCLOAK-19300,Update Czech translation of email messages,"Add missing messages in the Czech translation and fix {{identityProviderLinkBodyHtml}}
+{code:none}
+themes/src/main/resources-community/theme/base/email/messages/messages_cs.properties{code}"
+,,
+KEYCLOAK-19297,Client offline sessions are stored with wrong client id after server restart when custom ClientStorageProvider is used,"When a custom {{ClientStorageProvider}} is used, client offline sessions from clients that are originate from an external ClientStorageProvider are [stored|https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/JpaUserSessionPersisterProvider.java#L410] with a wrong client (object) id in the cached {{UserSession}} object during server (re)start.
+
+The problem is that a [PersistentClientSessionEntity|https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/PersistentClientSessionEntity.java#L50] for an external client always set [the constant value |https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/JpaUserSessionPersisterProvider.java#L101] {{external}} as client id in the entity/database. The actual (external) client id is stored in the {{externalClientId}} field.
+
+Therefore client offline sessions for external clients are always stored with the key {{external}} instead of the client (object) id in the {{UsersSession.authenticatedClientSessions}} map.
+
+In consequence existing client sessions will not be found when for example a token refresh grant for one of these offline session is executed (after a server restart)."
+,,
+KEYCLOAK-19292,Opening Quarkus dev ui yields TemplateException due to missing metadata,"When I run Keycloak Quarkus via  \{{org.keycloak.quarkus._private.IDELauncher}} and open http://localhost:8080/q/dev/ a \{{io.quarkus.qute.TemplateException}} is thrown. 
+
+{{io.quarkus.qute.TemplateException: Property ""description"" not found on the base object ""java.util.LinkedHashMap"" in expression \{it.description} in template tags/nonActionableExtension.html on line 21}}
+
+This is caused by a missing description field in {{quarkus/runtime/src/main/resources/META-INF/quarkus-extension.yaml}}.
+
+{{}}"
+,,
+KEYCLOAK-19289,"UserAdapter.setAttribute(String name, List<String> values) throws NPE if values is null","The method [UserAdapter.setAttribute(String name, List<String> values)|[https://github.com/keycloak/keycloak/blob/67e3df654f62a9fb2f85140524cfbde08b5635b3/model/jpa/src/main/java/org/keycloak/models/jpa/UserAdapter.java#L178]] throws a null pointer exception on `values.stream()` if `values` is null.
+
+Altough `values` is checked if it's null when initializing `valuesToSet`, it is not checked on calling `values.stream()`.
+
+Current workaround is to check if `values` is null before calling `setAttribute` and just call `removeAttribute` if it's null."
+,,
+KEYCLOAK-19288,Update Czech translation of login messages,"Add missing messages in the Czech translation 
+{code:none}
+themes/src/main/resources-community/theme/base/login/messages/messages_cs.properties{code}
+https://github.com/keycloak/keycloak/pull/8427"
+,,
+KEYCLOAK-19286,Client offline sessions get lost during startup when custom ClientStorageProvider is used,"When a custom {{ClientStorageProvider}} is used, client offline sessions from clients that are originate from an external ClientStorageProvider are deleted during server (re)start.
+
+The problem is that the [JpaUserSessionPersisterProvider|https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/JpaUserSessionPersisterProvider.java#L437] incorrectly constructs the client {{StorageId}} with the client id instead of the expected provider id. This will lead to a client id that can never be [found|https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/JpaUserSessionPersisterProvider.java#L439] by {{realm.getClientById()}}.
+
+Which in turn leads to, that this client id will be [detected as removed|https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/JpaUserSessionPersisterProvider.java#L406-L408] and all offline client sessions with this client id will be [deleted|https://github.com/keycloak/keycloak/blob/6886bd6651c608011457d259968ab3e906c58336/model/jpa/src/main/java/org/keycloak/models/jpa/session/JpaUserSessionPersisterProvider.java#L386-L397].
+
+ 
+
+*Example*
+{code:java}
+select client_id,client_storage_provider,external_client_id from offline_client_session;
+
+client_id |  client_storage_provider  |  external_client_id
+---------+----------------------------+------------------------
+external  | 573a40ab-ee75-4993        | 4e54913f-ad4e-4985
+{code}
+ 
+
+Resulting client Id:
+ {{f:external:4e54913f-ad4e-4985}}
+
+Expected client Id:
+ {{f:573a40ab-ee75-4993:4e54913f-ad4e-4985}}"
+,,
+KEYCLOAK-19283,Idp: Advanced claim to group mapper,"The goal of this task is to implement a new identity provider mapper, that assigns a group to every user that is authenticating using the idp if certain claims are present in the JWT. It should be able to interpret claim values as regex (like the ""Advanced claim to role"" mapper)."
+,,
+KEYCLOAK-19274,Avoid loading files at startup when setting up named queries,"KEYCLOAK-18842 introduced to the startup a step to load properties files from the filesystem when setting up named queries.
+
+We should avoid performing the steps at runtime but ahead of time."
+,,
+KEYCLOAK-19262,Login/Register UI: Background Image Not Covering Entire Page,"On the login and register pages, Keycloak background image stops before the bottom of the page, revealing another background image underneath. See screenshot
+
+This is cause by a clash between Keycloak's login CSS, where the Keycloak background image is defined, and Patternfly's CSS, which also defines a different background image.
+
+The simple solution is to set Patternfly's background image to none in Keycloak's login.css. I've created a PR to do this."
+,,
+KEYCLOAK-19251,Update Jekins report to allow pipelines as a parameter,

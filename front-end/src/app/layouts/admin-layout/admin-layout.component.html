@@ -5,10 +5,10 @@
     <app-footer></app-footer>
   </div>
 </div>
-<div class=" fixed-plugin">
-  <div class=" show-dropdown" ngbDropdown>
+<div class="fixed-plugin">
+  <div class="show-dropdown" ngbDropdown>
     <a data-toggle="dropdown" ngbDropdownToggle>
-      <i class=" fa fa-cog fa-2x"> </i>
+      <i class="fa fa-cog fa-2x"></i>
     </a>
     <ul ngbDropdownMenu>
       <!-- <li class=" header-title">Sidebar Background</li>
@@ -32,11 +32,32 @@
           <div class=" clearfix"></div>
         </a>
       </li> -->
-      <li class=" adjustments-line text-center color-change">
-        <span class=" color-label"> LIGHT MODE </span>
-        <span class=" badge light-badge mr-2" (click)="changeDashboardColor('white-content')"> </span>
-        <span class=" badge dark-badge ml-2" (click)="changeDashboardColor('black-content')"> </span>
-        <span class=" color-label"> DARK MODE </span>
+      <li class="adjustments-line text-center color-change">
+        <span class="color-label">LIGHT MODE</span>
+        <span
+          class="badge light-badge mr-2"
+          (click)="changeDashboardColor('white-content')"
+        ></span>
+        <span
+          class="badge dark-badge ml-2"
+          (click)="changeDashboardColor('black-content')"
+        ></span>
+        <span class="color-label">DARK MODE</span>
+      </li>
+
+      <li class="adjustments-line text-center color-change">
+        <span class="color-label text-capitalize">EMBEDDING</span>
+        <span
+          class="badge dark-badge mr-2"
+          [ngClass]="{ 'active-badge': choosedAIModelType == 'embedding' }"
+          (click)="switchOpenAIModel('embedding')"
+        ></span>
+        <span
+          class="badge dark-badge ml-2 text-capitalize"
+          [ngClass]="{ 'active-badge': choosedAIModelType == 'finetune' }"
+          (click)="switchOpenAIModel('finetune')"
+        ></span>
+        <span class="color-label">FINE-TUNING</span>
       </li>
     </ul>
   </div>

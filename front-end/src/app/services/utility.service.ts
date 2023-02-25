@@ -3,6 +3,7 @@ import { SharingService } from './sharing.service';
 import { ClarificationService } from './clarification.service';
 import { NotificationService } from './notification.service';
 import { Feedback } from '../model/clarification.model';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class UtilityService {
@@ -12,7 +13,8 @@ export class UtilityService {
     constructor(
         private sharingService: SharingService,
         private clarificationService: ClarificationService,
-        private notifyService: NotificationService) { }
+        private notifyService: NotificationService,
+        private router: Router) { }
 
     async getClarificationListData() {
         this.clarificationList = [];
@@ -34,24 +36,30 @@ export class UtilityService {
             });
     }
 
-    getSelectedClarificationData(clarificationId) {
+    async getSelectedClarificationData(clarificationId) {
         let conversationArray = [];
-        this.clarificationService.getSelectedClarification(clarificationId)
+        await this.clarificationService.getSelectedClarification(clarificationId)
             .then((res) => {
                 if (res?.status === 'success') {
                     conversationArray = res?.data?.clarificationData?.conversations;
                     this.sharingService.setSelectedClarificationArray(conversationArray);
                     this.sharingService.setFeedback(res?.data?.clarificationData?.feedback);
                     this.sharingService.setClarificationTitle(res?.data?.clarificationData?.title);
+                    this.sharingService.setKeywords(res?.data?.clarificationData?.indexingKeywords? res?.data?.clarificationData?.indexingKeywords: []);
+                    if(res?.data?.clarificationData?.indexingKeywords) {
+                        this.getClarificationListData();
+                    }
                 } 
             });
     }
 
-    editExistingclarificationData(clarificationId: string, title: string) {
-        this.clarificationService.updateClarificationTitle(clarificationId, title)
+    async editExistingclarificationData(clarificationId: string, title: string) {
+        await this.clarificationService.updateClarificationTitle(clarificationId, title)
             .then((res) => {
                 this.notifyService.showSuccess("Clarification title modified successfully !!",
                     "Notification");
+                    
+                    this.sharingService.setClarificationTitle(title);
                     this.getClarificationListData();
             })
             .catch((err) => {
@@ -61,12 +69,14 @@ export class UtilityService {
             });
     }
 
-    deleteExistingclarificationData(clarificationId: string) {
-        this.clarificationService.deleteClarification(clarificationId)
+    async deleteExistingclarificationData(clarificationId: string) {
+        await this.clarificationService.deleteClarification(clarificationId)
             .then((res) => {
                 this.notifyService.showSuccess("Clarification Deleted successfully !!",
                     "Notification");
                     this.getClarificationListData();
+                    this.router.navigate(['clarification']);
+                    this.sharingService.setClarificationTitle('');
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while deleting the Clarification !!",
@@ -75,8 +85,8 @@ export class UtilityService {
             });
     }
 
-    sendFeedback(clarificationId: string, feedback: Feedback) {
-        this.clarificationService.addFeedback(clarificationId, feedback)
+    async sendFeedback(clarificationId: string, feedback: Feedback) {
+        await this.clarificationService.addFeedback(clarificationId, feedback)
             .then((res) => {
                 console.log(res);
                 if (res?.status === 'success' && res?.message) {
@@ -85,6 +95,7 @@ export class UtilityService {
                 }
                 this.notifyService.showSuccess("Feedback added successfully !!",
                     "Notification");
+                // location.reload();
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while sending the Feedback!!",

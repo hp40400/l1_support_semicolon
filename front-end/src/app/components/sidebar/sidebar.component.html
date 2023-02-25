@@ -13,9 +13,10 @@
       *ngFor="let menuItem of menuItems"
       class="{{ menuItem.class }} nav-item"
     >
-    <a [routerLink]="[menuItem.path]" class="sidebar_menu">
+    <a class="sidebar_menu">
       <div class="row col-12 sidebar_menu_wrapper">
-        <div *ngIf="!isEditEnable  || (menuItem.id !== sharingService.getClarificationId())" [ngClass]="menuItem?.id != sharingService.getClarificationId() ? 'col-12 menuItem' : 'col-6 menuItem'" (click)="clickExistingClarification(menuItem.id, menuItem.title)">
+        <div *ngIf="!isEditEnable  || (menuItem.id !== sharingService.getClarificationId())"  [routerLink]="[menuItem.path]" [ngClass]="menuItem?.id != sharingService.getClarificationId() ? 'col-12 menuItem' : 'col-6 menuItem'"
+         (click)="clickExistingClarification(menuItem.id, menuItem.title)">
             <span title="{{ menuItem?.title }}">{{ menuItem?.title }}</span>
         </div>
         <div *ngIf="isEditEnable && (menuItem.id == sharingService.getClarificationId())" [ngClass]="menuItem?.id != sharingService.getClarificationId() ? 'col-12 menuItem' : 'col-6 menuItem'">
@@ -24,7 +25,7 @@
       </div>
         <div *ngIf="menuItem.id == sharingService.getClarificationId()" class="col-2">
           <i *ngIf="!isEditEnable && !isDeleteEnable" title="Edit Clarification" class="delete tim-icons icon-pencil" (click)="onEdit()"> </i>
-          <i *ngIf="isEditEnable" title="Submit" class=" delete tim-icons icon-check-2" (click)="editExistingClarificationTitle(menuItem.id, menuItemTitle)"></i>
+          <i *ngIf="isEditEnable" title="Submit" [disable]="menuItemTitle == ''" class=" delete tim-icons icon-check-2" (click)="editExistingClarificationTitle(menuItem.id, menuItemTitle)"></i>
           <i *ngIf="isDeleteEnable" title="Delete" class=" delete tim-icons icon-check-2" (click)="deleteExistingClarification(menuItem.id)"></i>
         </div>
         <div *ngIf="menuItem.id == sharingService.getClarificationId()" class="col-2">
@@ -36,5 +37,20 @@
     </a>
     </li>
   </ul>
+</div>
+<div class="seperator">
+  <hr>
+  <div>
+    <li class=" adjustments-line text-center color-change profile-details">
+      <label><img alt="..." class=" avatar" src="assets/img/default-avatar.png" />L1 Support User-1</label>
+    </li>
+    <li class=" adjustments-line text-center color-change profile-details">
+      <label>l1_support_user_1@support.com</label>
+    </li>
+    <li class=" adjustments-line text-center color-change profile-details">
+      <hr>
+      <label><i class="fas fa-sign-out-alt mr-3"></i>Logout</label>
+    </li>
+  </div>
 </div>
 

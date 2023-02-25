@@ -16,6 +16,11 @@
       }
   }
 
+  .feedback-styles {
+    color:#1d253b !important;
+    font-weight: 800;
+}
+
   .sub-card {
     background-color: honeydew !important;
   }
@@ -48,6 +53,12 @@
       li, div, i {
         color: #1d253b !important;
       }
+    }
+    li {
+      color: #1d253b !important;
+    }
+    hr {
+      background-color: #1d253b !important;
     }
   }
 

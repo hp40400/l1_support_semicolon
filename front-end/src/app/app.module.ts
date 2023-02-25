@@ -26,7 +26,9 @@ import { UtilityService } from './services/utility.service';
     NgbModule,
     RouterModule,
     AppRoutingModule,
-    ToastrModule.forRoot()
+    ToastrModule.forRoot({
+      preventDuplicates: true
+    })
   ],
   declarations: [
     AppComponent,

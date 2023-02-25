@@ -23,6 +23,7 @@ export class SharingService {
     is_satisfied : null,
     reason : null
   };
+  keywordsArray: any = [];
 
   constructor() {
     this.addChat$.subscribe(status => window.localStorage.setItem('addChat', status));
@@ -109,6 +110,14 @@ export class SharingService {
   
   getFeedback() {
     return this.feedback;
+  }
+
+  getKeywords() {
+    return this.keywordsArray;
+  }
+
+  setKeywords(val: any) {
+    this.keywordsArray = val;
   }
 
 }

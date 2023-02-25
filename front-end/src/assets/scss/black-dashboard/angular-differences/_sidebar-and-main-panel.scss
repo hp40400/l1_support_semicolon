@@ -8,12 +8,12 @@
     min-height: calc(100vh - 70px);
   }
 }
-@media screen and (max-width: 768px){
-  .main-panel .content {
-      padding-left: 15px;
-      padding-right: 15px;
-  }
-}
+// @media screen and (max-width: 768px){
+//   .main-panel .content {
+//       padding-left: 15px;
+//       padding-right: 15px;
+//   }
+// }
 .logo-img{
   width: 35px;
   height: 35px;
@@ -33,13 +33,13 @@
     @include linear-gradient($primary-states, $primary);
   }
 }
-@media screen and (max-width: 991px){
-  .main-panel {
-      .content {
-      padding-left: 30px !important;
-    }
-  }
-  .fixed-plugin .dropdown-toggle:after{
-    display: none;
-  }
-}
+// @media screen and (max-width: 991px){
+//   .main-panel {
+//       .content {
+//       padding-left: 30px !important;
+//     }
+//   }
+//   .fixed-plugin .dropdown-toggle:after{
+//     display: none;
+//   }
+// }
