@@ -18,7 +18,7 @@ pipeline {
                 sh 'docker rm frontend || true'
                 sh 'docker rmi hp/node-web-server || true'
                 sh 'docker build -t hp/node-web-server .'
-                sh 'docker run --name frontend -p 80:80 -d hp/node-web-app'
+                sh 'docker run --name frontend -p 80:80 -d hp/node-web-server'
                  }
             }
         }
