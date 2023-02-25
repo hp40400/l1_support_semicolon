@@ -218,7 +218,7 @@
             </div>
           </li>
 
-          <li *ngIf="sharingService.getSendFeedbackBtnClicked()" class="feedback_msg message">
+          <li *ngIf="sharingService.getSendFeedbackBtnClicked() && sharingService.getFeedback()?.is_satisfied == null" class="feedback_msg message">
             <div class="incoming_msg">
               <div class="incoming_msg_img">
                 <img src="assets/img/anime3.png" alt="User avatar" />
@@ -256,7 +256,6 @@
                         ></textarea>
                       </div>
                     </div>
-                    <!-- || (is_satisfied == false && reason == null) -->
                     <div *ngIf="!sharingService.getFeedbackResponse()" class="button_container">
                       <button class="mr-2" [disabled]="is_satisfied == null || (is_satisfied == false && reason == null)" (click)="sendFeedbackReason()"><i class=" delete tim-icons icon-check-2"></i></button>
                       <button (click)="cancel()"><i class=" tim-icons icon-simple-remove"></i></button>
@@ -267,7 +266,7 @@
             </div>
           </li>
 
-          <li *ngIf="!sharingService.getSendFeedbackBtnClicked() && sharingService.getFeedback()?.is_satisfied != null" class="feedback_msg message">
+          <li *ngIf="sharingService.getFeedback()?.is_satisfied != null" class="feedback_msg message">
             <div class="incoming_msg">
               <div class="incoming_msg_img">
                 <img src="assets/img/anime3.png" alt="User avatar" />
@@ -280,14 +279,14 @@
                     <div class="row radio_container">
                       <div class="col-4 col-offset-2 feedback_option">
                         <span>
-                          <input name="options" type="radio" [value]="true" [(ngModel)]="!!sharingService.getFeedback().reason"  (click)="onClickeRadioOption()"
+                          <input name="options" type="radio" [value]="true" [(ngModel)]="sharingService.getFeedback().is_satisfied"  (click)="onClickeRadioOption()"
                             [disabled]="true"
                           ><label>Yes</label>
                         </span>
                       </div>
                       <div class="col-4 feedback_option">
                         <span>
-                          <input name="options" type="radio" [value]="false" [(ngModel)]="!sharingService.getFeedback().reason" (click)="onClickeRadioOption()"
+                          <input name="options" type="radio" [value]="false" [(ngModel)]="sharingService.getFeedback().is_satisfied" (click)="onClickeRadioOption()"
                             [disabled]="true"
                           ><label>No</label>
                         </span>

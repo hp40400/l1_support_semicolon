@@ -22,13 +22,14 @@ export class ClarificationsComponent implements OnInit {
   isInitialLanding: boolean = true;
   clarificationArray: Clarification[] = [];
   chatstarted: boolean = false;
-  is_satisfied: any;
-  reason: any;
+  is_satisfied: any = null;
+  reason: any = null;
 
   constructor(public sharingService: SharingService, private utilityService: UtilityService) { }
-  
 
   ngOnInit() {
+    this.is_satisfied = null;
+    this.reason = null;
     this.sharingService.addChat$.subscribe(
       status => {
         if (status) {
@@ -128,7 +129,7 @@ export class ClarificationsComponent implements OnInit {
     window.speechSynthesis.cancel();
   }
 
-  sendFeedbackReason() {
+  async sendFeedbackReason() {
     let feedbackModel: Feedback;
     if(this.is_satisfied) {
       feedbackModel = {
@@ -141,7 +142,15 @@ export class ClarificationsComponent implements OnInit {
         reason: this.reason
       }
     }
-    this.utilityService.sendFeedback(this.sharingService.getClarificationId(), feedbackModel);
+    try {
+      await this.utilityService.sendFeedback(this.sharingService.getClarificationId(), feedbackModel);
+      if(this.sharingService.getFeedbackResponse()) {
+        this.is_satisfied = null;
+        this.reason = null;
+      }
+    } catch(err) {
+      console.log('error ', err);
+    }
   }
 
   cancel() {

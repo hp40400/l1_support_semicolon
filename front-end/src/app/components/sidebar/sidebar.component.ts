@@ -38,8 +38,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     if(this.sharingService.getClarificationId()) {
       this.utilityService.getSelectedClarificationData(this.sharingService.getClarificationId());
     }
-    await this.utilityService.getClarificationListData();
-    this.getMenuItem();
+    this.utilityService.getClarificationListData();
     this.newChatStarted ? localStorage.setItem('newChatStarted', 'true') : localStorage.setItem('newChatStarted', 'false');
 
     this.sharingService.clarificationsList$.subscribe(
@@ -66,6 +65,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         }
       });
     } 
+    this.cd.detectChanges();
   }
 
   async clickNewClarification() {

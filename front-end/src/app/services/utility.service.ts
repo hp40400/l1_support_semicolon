@@ -92,13 +92,13 @@ export class UtilityService {
     async sendFeedback(clarificationId: string, feedback: Feedback) {
         await this.clarificationService.addFeedback(clarificationId, feedback)
             .then((res) => {
-                console.log(res);
                 if (res?.status === 'success' && res?.message) {
                     const message = res.message;
                     this.sharingService.setFeedbackResponse(message);
                 }
                 this.notifyService.showSuccess("Feedback added successfully !!",
                     "Notification");
+                this.getSelectedClarificationData(this.sharingService.getClarificationId());
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while sending the Feedback!!",

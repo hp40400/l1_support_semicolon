@@ -19,8 +19,6 @@ export class ClarificationService {
   public getClarificationList(): Promise<any> {
     const keywords = this.sharingService.getKeywords();
     let keywordsParam = '';
-    console.log(keywords);
-    console.log(keywords.join(','));
     keywordsParam = ((keywords?.length > 0) ? '?keywords=': '') + keywords.join(',');
     const url = this.baseUrl + '/api/clarification' + keywordsParam;
     return this.http
