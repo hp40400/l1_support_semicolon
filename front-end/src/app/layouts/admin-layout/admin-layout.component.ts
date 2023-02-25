@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core'
+import { ClarificationService } from 'src/app/services/clarification.service'
 
 @Component({
   selector: 'app-admin-layout',
@@ -9,7 +10,7 @@ export class AdminLayoutComponent implements OnInit {
   public sidebarColor: string = 'green'
   choosedAIModelType = 'finetune'
 
-  constructor() {}
+  constructor(private clarificationService: ClarificationService) {}
   changeSidebarColor(color) {
     var sidebar = document.getElementsByClassName('sidebar')[0]
     var mainPanel = document.getElementsByClassName('main-panel')[0]
@@ -35,6 +36,8 @@ export class AdminLayoutComponent implements OnInit {
 
   switchOpenAIModel(modelType) {
     this.choosedAIModelType = modelType
+
+    this.clarificationService.setOpenAIModel(this.choosedAIModelType)
     console.log('Model Type', modelType)
   }
 }
