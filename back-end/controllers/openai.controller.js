@@ -3,12 +3,13 @@ const fs = require('fs')
 const csv = require('csvtojson')
 const csvparser = require('csv-parser')
 
-const http = require('https')
-
+const similarity = require('compute-cosine-similarity')
 // Import the OpenAI
 const { Configuration, OpenAIApi } = require('openai')
 const { encode, decode } = require('gpt-3-encoder')
 const { flattenDeep } = require('lodash')
+
+const math = require('mathjs')
 
 // Create a new OpenAI configuration and paste your API key
 // obtained from Step 1
@@ -208,7 +209,11 @@ exports.cancelFineTuneByJobId = async (req, res) => {
     })
   }
 }
-
+/**
+ * =====================================================
+ * =============== testing controllers =================
+ * =====================================================
+ */
 exports.takeContextFromCSV = async (req, res) => {
   try {
     const data = []
@@ -392,4 +397,175 @@ const answerQuestionWithContext = async (query, embeddings, data) => {
 
   // Return the generated response
   return response.choices[0].text.trim()
+}
+
+// exports.embededModel = async (req, res) => {
+//   try {
+//     const data = []
+//     let answares = null
+//     const promptQuery = req.body.queryPrompt
+//     fs.createReadStream('./openai-model-data/olympics_sections_text.csv')
+//       .pipe(csvparser())
+//       .on('data', (row) => {
+//         data.push(row)
+//       })
+//       .on('end', async () => {
+//         console.log(`Loaded ${data.length} rows from CSV file.`)
+//         console.log(`data from csv`, data)
+
+//         // Preprocess context data as needed
+//         const preprocessedData = data.map((row) => {
+//           // Perform any necessary text preprocessing here
+//           return row.content
+//         })
+
+//         const embeddings = []
+//         const prommptemd = []
+//         for (const document of preprocessedData) {
+//           const response = await openai.createEmbedding({
+//             input: document,
+//             model: 'text-embedding-ada-002',
+//           })
+
+//           // console.log('Embeded response', response.data.data[0].embedding)
+//           embeddings.push(...response.data.data[0].embedding)
+//         }
+
+//         const responseQuery = await openai.createEmbedding({
+//           input: promptQuery,
+//           model: 'text-embedding-ada-002',
+//         })
+
+//         // console.log('Embeded response', response.data.data[0].embedding)
+//         prommptemd.push(...responseQuery.data.data[0].embedding)
+
+//         // const similarities = similarity(prommptemd, embeddings)
+
+//         // console.log('AAAAAAAAAAAA', similarities)
+
+//         // Define two vectors
+//         const vec1 = [1, 2, 3]
+//         const vec2 = [2, 4, 6]
+
+//         const normalizeVector = (vector) => {
+//           const norm = Math.sqrt(vector.reduce((acc, val) => acc + val ** 2, 0))
+//           return vector.map((val) => val / norm)
+//         }
+
+//         const cosineSimilarity = (vector1, vector2) => {
+//           const normalizedVector1 = normalizeVector(vector1)
+//           const normalizedVector2 = normalizeVector(vector2)
+//           const dotProduct = normalizedVector1.reduce(
+//             (acc, val, i) => acc + val * normalizedVector2[i],
+//             0,
+//           )
+//           return dotProduct
+//         }
+
+//         console.log(cosineSimilarity(prommptemd, embeddings))
+
+//         const similarData = cosineSimilarity(prommptemd, embeddings)
+
+//         console.log('parseFLoat similarData', similarData)
+
+//         const relevantDocuments = embeddings.map((embedding, i) => {
+//           console.log('parseFLoat embedding', parseFloat(embedding))
+//           if (parseFloat(similarData) == parseFloat(embedding)) {
+//             return {
+//               //tokens, embedding,
+//               index: i,
+//               similarity: embedding,
+//             }
+//           }
+//         })
+//         // .sort((a, b) => b?.similarity - a?.similarity)
+//         // .map((item) => {
+//         //   console.log('Check my response', item)
+
+//         //   if (item?.index) {
+//         //     return item?.index
+//         //   }
+//         // })
+
+//         // Extract the text of the relevant documents
+//         console.log(
+//           'relavantDoucmentats',
+//           relevantDocuments.map((res) => {
+//             if (res) {
+//               return res
+//             }
+//           }),
+//         )
+
+//         // const newData = data
+//         //   .map((row, index) => ({ ...row, similarity: row[similarData.i] }))
+//         //   .sort((a, b) => b.similarity - a.similarity)
+
+//         console.log('check my newData', similarData)
+
+//         // Compute cosine similarity between vec1 and vec2
+//         // const sim =
+//         //   math.dot(prommptemd, embeddings) /
+//         //   (math.norm(prommptemd) * math.norm(embeddings))
+
+//         // console.log(`Cosine similarity between vec1 and vec2: ${sim}`)
+
+//         res.json({
+//           doteng: similarData,
+//           embeded: embeddings.findIndex((a) => a == similarData),
+//           promot: prommptemd,
+//         })
+//       })
+//   } catch (err) {
+//     res.json({
+//       status: 'fail',
+//       message: err,
+//     })
+//   }
+// }
+
+// New Try
+exports.embededModel = async (req, res) => {
+  const data = []
+
+  fs.createReadStream('./openai-model-data/olympics_sections_text.csv')
+    .pipe(csvparser())
+    .on('data', (row) => {
+      data.push(row)
+    })
+    .on('end', async () => {
+      let context = null
+      const row = data.find((row) => row.title == req.body.queryPrompt)
+
+      if (row) {
+        context = `${JSON.stringify(row.content)}`
+
+        console.log(row)
+      } else {
+        // If no context is found for the prompt, return an error message
+
+        res.json({
+          data: 'Sorry, I am not sure what you are asking.',
+          availableData: data,
+        })
+      }
+
+      try {
+        const result = await openai.createCompletion({
+          model: 'text-davinci-003',
+          prompt: ` ${context} P:${req.body.queryPrompt}`,
+          maxTokens: 60,
+          temperature: 0.6,
+        })
+
+        res.json({
+          data: result.data.choices[0].text.trim(),
+        })
+      } catch (err) {
+        res.json({
+          status: 'fail',
+          message: err,
+        })
+      }
+    })
 }
