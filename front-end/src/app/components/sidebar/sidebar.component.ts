@@ -34,16 +34,21 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   subscription: any;
 
-  ngOnInit() {
+  async ngOnInit() {
     if(this.sharingService.getClarificationId()) {
       this.utilityService.getSelectedClarificationData(this.sharingService.getClarificationId());
     }
+    await this.utilityService.getClarificationListData();
     this.getMenuItem();
     this.newChatStarted ? localStorage.setItem('newChatStarted', 'true') : localStorage.setItem('newChatStarted', 'false');
+
+    this.sharingService.clarificationsList$.subscribe(
+      status => {
+        this.getMenuItem();
+      });
   }
 
-  async getMenuItem() {
-    await this.utilityService.getClarificationListData();
+  getMenuItem() {
     this.menuItems = [];
     const menuItemsData = this.sharingService.getClarificationList();
     if (menuItemsData?.length > 0) {
@@ -76,12 +81,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }
     this.subscription = this.sharingService.getAddChatFalse().subscribe();
 
-    // localStorage.setItem('chatId', '');
-    // this.existingChatId = '';
-    // if (this.subscription) {
-    //   this.subscription.unsubscribe();
-    // }
-    // this.subscription = this.sharingService.getAddChatFalse().subscribe();
     this.isEditEnable = false;
     this.isDeleteEnable = false;
   }
@@ -96,11 +95,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
       .then((res) => {
         if (res?.status === "success" && res?.data?.newClarification) {
           clarificationId = res.data.newClarification['_id'];
+          this.sharingService.setKeywords(res.data.newClarification?.indexingKeywords);
+          this.utilityService.getClarificationListData();
         }
         this.router.navigate([`clarification/${clarificationId}`]);
         this.sharingService.setIsNewClarificationClicked(true);
         this.sharingService.setClarificationId(clarificationId);
-        this.getMenuItem();
       })
       .catch((err) => {
         this.notifyService.showError("Error Occured while adding new clarification title !!", "Notification");
@@ -148,8 +148,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   async editExistingClarificationTitle(clarificationId: string, title: string) {
     const editedTitle = title === ''? 'New Clarification': title;
     try {
-      await this.utilityService.editExistingclarificationData(clarificationId, editedTitle);
-      await this.getMenuItem();
+      this.utilityService.editExistingclarificationData(clarificationId, editedTitle);
     }
     catch (err) {
       console.log(err)
@@ -159,8 +158,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   async deleteExistingClarification(clarificationId: string) {
     try {
-      await this.utilityService.deleteExistingclarificationData(clarificationId);
-      await this.getMenuItem();
+      this.utilityService.deleteExistingclarificationData(clarificationId);
     }
     catch (err) {
       console.log(err)

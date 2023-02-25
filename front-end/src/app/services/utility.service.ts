@@ -33,6 +33,10 @@ export class UtilityService {
                     });
                 }
                 this.sharingService.setClarificationList(this.clarificationList);
+                if (this.subscription) {
+                    this.subscription.unsubscribe();
+                  }
+                  this.subscription = this.sharingService.getclarificationsList().subscribe();
             });
     }
 
@@ -95,7 +99,6 @@ export class UtilityService {
                 }
                 this.notifyService.showSuccess("Feedback added successfully !!",
                     "Notification");
-                // location.reload();
             })
             .catch((err) => {
                 this.notifyService.showError("Error Occured while sending the Feedback!!",

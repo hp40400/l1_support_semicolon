@@ -6,10 +6,10 @@ import { Feedback } from '../model/clarification.model';
 
 export class SharingService {
   private addChatSource = new BehaviorSubject<string>('false');
-  private addClarifications = new BehaviorSubject<any>([]);
+  private clarificationsarray = new BehaviorSubject<any>([]);
 
   public addChat$ = this.addChatSource.asObservable();
-  public clarifications$ = this.addClarifications.asObservable();
+  public clarificationsList$ = this.clarificationsarray.asObservable();
   
   isNewClarificationClicked: boolean = false;
   clarificationId: string = '';
@@ -29,13 +29,6 @@ export class SharingService {
     this.addChat$.subscribe(status => window.localStorage.setItem('addChat', status));
   }
 
-  //   getAddChat(): Observable<string> {
-  //     let chatStatus = window.localStorage.getItem('addChat');
-  //     chatStatus = (chatStatus === 'false' || chatStatus == null) ? 'true' : 'false';
-  //     this.addChatSource.next(chatStatus);
-  //     return this.addChat$;
-  //   }
-
   getAddChatTrue(): Observable<string> {
     let chatStatus = 'true';
     this.addChatSource.next(chatStatus);
@@ -46,6 +39,12 @@ export class SharingService {
     let chatStatus = 'false';
     this.addChatSource.next(chatStatus);
     return this.addChat$;
+  }
+
+  getclarificationsList(): Observable<any> {
+    let list = this.getClarificationList();
+    this.clarificationsarray.next(list);
+    return this.clarificationsList$;
   }
 
   setSelectedClarificationArray(val: any) {

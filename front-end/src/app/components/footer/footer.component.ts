@@ -3,6 +3,7 @@ import { SharingService } from "src/app/services/sharing.service";
 import { ClarificationService } from '../../services/clarification.service';
 import { NotificationService } from '../../services/notification.service';
 import { Router } from '@angular/router';
+import { UtilityService } from "src/app/services/utility.service";
 
 @Component({
   selector: "app-footer",
@@ -21,7 +22,8 @@ export class FooterComponent implements OnInit {
     private router: Router,
     public sharingService: SharingService,
     public clarificationService: ClarificationService,
-    public notifyService: NotificationService) { }
+    public notifyService: NotificationService,
+    private utilityService: UtilityService) { }
 
   ngOnInit() {
   }
@@ -57,9 +59,9 @@ export class FooterComponent implements OnInit {
           this.sharingService.setIsNewClarificationClicked(false);
           this.sharingService.setClarificationId(clarificationId);
           this.sendClarification(this.sharingService.getClarificationId());
+          this.sharingService.setKeywords(res.data.newClarification?.indexingKeywords);
+          this.utilityService.getClarificationListData();
         }
-        
-        //need to implement getMenuItem part for sidebar.
       })
       .catch((err) => {
         this.notifyService.showError("Error Occured while adding new clarification title !!", "Notification");
@@ -80,7 +82,9 @@ export class FooterComponent implements OnInit {
           conversationArray.pop();
           conversationArray.push(res?.data?.newConversationData);
           this.sharingService.setSelectedClarificationArray(conversationArray);
-        } 
+          this.sharingService.setKeywords(res.data.newConversationData?.indexingKeywords);
+          this.utilityService.getClarificationListData();
+        }
       })
       .catch((err) => {
         this.notifyService.showError("Error Occured while modifying the Clarification !!",
