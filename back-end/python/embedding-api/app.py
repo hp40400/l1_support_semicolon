@@ -114,13 +114,15 @@ def answer_question(
     size="ada",
     debug=False,
     max_tokens=300,
-    stop_sequence=None
+    stop_sequence=None,
 ):
+    search =get_search_string( context=question)
+    print(search)
     """
     Answer a question based on the most similar context from the dataframe texts
     """
     context = create_context(
-        question,
+        search,
         df,
         max_len=max_len,
         size=size,
@@ -133,7 +135,31 @@ def answer_question(
     try:
         # Create a completions using the questin and context
         response = openai.Completion.create(
-            prompt=f"Answer the question based on the context below and elaborate with extra knowledge focusing on information from the context, and if the question can't be answered based on the context, say \"I don't know\"\n\nContext: {context}\n\n---\n\nQuestion: {question}\nAnswer:",
+            prompt=f"Answer the question based on the context below and elaborate with extra knowledge provide steps if possible with an explanation, and if the question can't be answered based on the context, say \"I don't know\"\n\nContext: {context}\n\n---\n\nQuestion: {question}\nAnswer:",
+            temperature=1,
+            max_tokens=max_tokens,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=stop_sequence,
+            model=model,
+        )
+        return response["choices"][0]["text"].strip()
+    except Exception as e:
+        print(e)
+        return ""
+
+def get_search_string(
+    model="text-davinci-003",
+    max_tokens=300,
+    stop_sequence=None,
+    context="",
+):
+
+    try:
+        # Create a completions using the questin and context
+        response = openai.Completion.create(
+            prompt=f"get only the important part from this string to search a embedding and don't provide an explanation:{context}",
             temperature=1,
             max_tokens=max_tokens,
             top_p=1,
