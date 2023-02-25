@@ -1,6 +1,6 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { SharingService } from './sharing.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http'
+import { Injectable } from '@angular/core'
+import { SharingService } from './sharing.service'
 
 @Injectable()
 export class ClarificationService {
@@ -14,7 +14,10 @@ export class ClarificationService {
     }),
   }
 
-  constructor(private http: HttpClient, private sharingService: SharingService) { }
+  constructor(
+    private http: HttpClient,
+    private sharingService: SharingService,
+  ) {}
 
   public getClarificationList(): Promise<any> {
     const keywords = this.sharingService.getKeywords();
@@ -76,7 +79,8 @@ export class ClarificationService {
     let url = null
 
     if (this.choosedModelType == 'embedding') {
-      url = `http://22.214.53.189:8081/api/clarification/${clarificationId}`
+      const embeddingModelAPI = 'http://44.214.53.189:8082'
+      url = `${embeddingModelAPI}/api/clarification/${clarificationId}`
     } else {
       url = this.baseUrl + `/api/clarification/${clarificationId}`
     }
