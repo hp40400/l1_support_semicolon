@@ -8,236 +8,135 @@ from typing import Optional, List
 import motor.motor_asyncio
 import json
 from datetime import datetime
+import requests
+import re
+import urllib.request
+from bs4 import BeautifulSoup
+from collections import deque
+from html.parser import HTMLParser
+from urllib.parse import urlparse
+import os
+import pandas as pd
+import tiktoken
+import openai
+from openai.embeddings_utils import distances_from_embeddings
+import numpy as np
+from openai.embeddings_utils import distances_from_embeddings, cosine_similarity
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)  # for exponential backoff
+import time
 import pymongo
 
 app = FastAPI()
-client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
-# db = client.college
-db = client.semicolon2023
+uri = 'mongodb+srv://raheemmohamed:LlIjbnwkc7B25iKA@cluster0.xmv93el.mongodb.net/semicolon2023?retryWrites=true'
+openai.api_key = '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'
+
+# # Replace "my_mongodb_uri" with the URI of your MongoDB instance
+client = pymongo.MongoClient(uri)
+db = client["semicolon2023"]        
+clarification = {"title": "My first blog post", "content": "Hello, world!"}
+
+clarifications_collection = db["clarifications"]
+
+@app.post("/", response_description="Add new clarification")
+# async def create_clarification(clarification: Clarification = Body(...)):
+async def create_clarification():
+
+    clarifications_collection.insert_one(clarification)
+    return JSONResponse(status_code=status.HTTP_201_CREATED)
+    # return JSONResponse(status_code=status.HTTP_201_CREATED, content=clarification_obj)
 
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
-        return ObjectId(v)
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+@app.get("/")
+def read_root():
+    return {"Hello": "Semicolon"}
 
 
-class StudentModel(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    name: str = Field(...)
-    email: EmailStr = Field(...)
-    course: str = Field(...)
-    gpa: float = Field(..., le=4.0)
+@app.post("/api/clarification/{clarificationId}")
+async def get_embedded_prompt(clarificationId: str, question: str):
+    # ans = "Heelo"
+    # return {"id": clarificationId, "question": question}
+    df=pd.read_csv('processed/embeddings.csv', index_col=0)
+    df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-        schema_extra = {
-            "example": {
-                "name": "Jane Doe",
-                "email": "jdoe@example.com",
-                "course": "Experiments, Science, and Fashion in Nanophotonics",
-                "gpa": "3.0",
-            }
-        }
+    df.head()
+    return answer_question(df, question=question, debug=False) 
 
+def create_context(
+    question, df, max_len=1800, size="ada"
+):
+    """
+    Create a context for a question by finding the most similar context from the dataframe
+    """
 
-class UpdateStudentModel(BaseModel):
-    name: Optional[str]
-    email: Optional[EmailStr]
-    course: Optional[str]
-    gpa: Optional[float]
+    # Get the embeddings for the question
+    q_embeddings = openai.Embedding.create(input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-        schema_extra = {
-            "example": {
-                "name": "Jane Doe",
-                "email": "jdoe@example.com",
-                "course": "Experiments, Science, and Fashion in Nanophotonics",
-                "gpa": "3.0",
-            }
-        }
-
-class ConversationModel(BaseModel):
-    request: str = Field(...)
-    response: str = Field(...)
-    timestamp: datetime
-
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.timestamp(),
-        }
-
-class FeedbackModel(BaseModel):
-    is_satisfied: bool = Field(...)
-    reason: str = Field(...)
+    # Get the distances from the embeddings
+    df['distances'] = distances_from_embeddings(q_embeddings, df['embeddings'].values, distance_metric='cosine')
 
 
-class ClarificationModel(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    title: str = Field(...)
-    # conversations: List[ConversationModel]
-    # feedback: FeedbackModel
+    returns = []
+    cur_len = 0
 
-    class Config:
-        # allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-        schema_extra = {
-            "example": {
-                "title": "what is mongodb"
-                # "conversations": [{
-                #                 "request": "what is mongodb",
-                #                 "response": "MongoDB is an open-source, NoSQL database.",
-                #                 }],
-                # "feedback": [{
-                #             "is_satisfied": True,
-                #             "reason": "good",
-                #             }],
-            }
-        }
+    # Sort by distance and add the text to the context until the context is too long
+    for i, row in df.sort_values('distances', ascending=True).iterrows():
+        
+        # Add the length of the text to the current length
+        cur_len += row['n_tokens'] + 4
+        
+        # If the context is too long, break
+        if cur_len > max_len:
+            break
+        
+        # Else add it to the text that is being returned
+        returns.append(row["text"])
 
-# class UpdateClarificationModel(BaseModel):
-#     title: str = Field(...)
-#     conversations: List[ConversationModel]
-#     feedback: FeedbackModel
+    # Return the context
+    return "\n\n###\n\n".join(returns)
 
-#     class Config:
-#         arbitrary_types_allowed = True
-#         json_encoders = {ObjectId: str}
-#         schema_extra = {
-#             "example": {
-#                 "title": "what is mongodb",
-#                 "conversations": [{
-#                                 "request": "what is mongodb",
-#                                 "response": "MongoDB is an open-source, NoSQL database.",
-#                                 }],
-#                 "feedback": [{
-#                             "is_satisfied": True,
-#                             "reason": "good",
-#                             }],
-#             }
-#         }
+def answer_question(
+    df,
+    model="text-davinci-003",
+    question="Am I allowed to publish model outputs to Twitter, without a human review?",
+    max_len=1800,
+    size="ada",
+    debug=False,
+    max_tokens=300,
+    stop_sequence=None
+):
+    """
+    Answer a question based on the most similar context from the dataframe texts
+    """
+    context = create_context(
+        question,
+        df,
+        max_len=max_len,
+        size=size,
+    )
+    # If debug, print the raw model response
+    if debug:
+        print("Context:\n" + context)
+        print("\n\n")
 
-
-@app.post("/", response_description="Add new student", response_model=StudentModel)
-async def create_student(student: StudentModel = Body(...)):
-    student = jsonable_encoder(student)
-    new_student = await db["students"].insert_one(student)
-    created_student = await db["students"].find_one({"_id": new_student.inserted_id})
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_student)
-
-
-@app.get(
-    "/", response_description="List all students", response_model=List[StudentModel]
-)
-async def list_students():
-    students = await db["students"].find().to_list(1000)
-    return students
-
-
-@app.get(
-    "/{id}", response_description="Get a single student", response_model=StudentModel
-)
-async def show_student(id: str):
-    if (student := await db["students"].find_one({"_id": id})) is not None:
-        return student
-
-    raise HTTPException(status_code=404, detail=f"Student {id} not found")
-
-
-@app.put("/{id}", response_description="Update a student", response_model=StudentModel)
-async def update_student(id: str, student: UpdateStudentModel = Body(...)):
-    student = {k: v for k, v in student.dict().items() if v is not None}
-
-    if len(student) >= 1:
-        update_result = await db["students"].update_one({"_id": id}, {"$set": student})
-
-        if update_result.modified_count == 1:
-            if (
-                updated_student := await db["students"].find_one({"_id": id})
-            ) is not None:
-                return updated_student
-
-    if (existing_student := await db["students"].find_one({"_id": id})) is not None:
-        return existing_student
-
-    raise HTTPException(status_code=404, detail=f"Student {id} not found")
-
-
-# @app.delete("/{id}", response_description="Delete a student")
-# async def delete_student(id: str):
-#     delete_result = await db["students"].delete_one({"_id": id})
-
-#     if delete_result.deleted_count == 1:
-#         return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-#     raise HTTPException(status_code=404, detail=f"Student {id} not found")
-
-
-@app.post("/", response_description="Add new clarification", response_model=ClarificationModel)
-async def create_clarification(clarification: ClarificationModel = Body(...)):
-    clarification = jsonable_encoder(clarification)
-    new_clarification = await db["clarifications"].insert_one(clarification)
-    created_clarification = await db["clarifications"].find_one({"_id": new_clarification.inserted_id})
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_clarification)
-
-
-@app.get(
-    "/", response_description="List all clarifications", response_model=List[ClarificationModel]
-)
-async def list_clarifications():
-    clarifications = await db["clarifications"].find().to_list(1000)
-    return clarifications
-
-
-# @app.get(
-#     "/{id}", response_description="Get a single clarification", response_model=ClarificationModel
-# )
-# async def show_clarification(id: str):
-#     if (clarification := await db["clarifications"].find_one({"_id": id})) is not None:
-#         return clarification
-
-#     raise HTTPException(status_code=404, detail=f"Clarification {id} not found")
-
-
-# @app.put("/{id}", response_description="Update a clarification", response_model=ClarificationModel)
-# async def update_clarification(id: str, clarification: UpdateClarificationModel = Body(...)):
-#     clarification = {k: v for k, v in clarification.dict().items() if v is not None}
-
-#     if len(clarification) >= 1:
-#         update_result = await db["clarifications"].update_one({"_id": id}, {"$set": clarification})
-
-#         if update_result.modified_count == 1:
-#             if (
-#                 updated_clarification := await db["clarifications"].find_one({"_id": id})
-#             ) is not None:
-#                 return updated_clarification
-
-#     if (existing_clarification := await db["clarifications"].find_one({"_id": id})) is not None:
-#         return existing_clarification
-
-#     raise HTTPException(status_code=404, detail=f"Clarification {id} not found")
-
-
-@app.delete("/{id}", response_description="Delete a clarification")
-async def delete_clarification(id: str):
-    delete_result = await db["clarifications"].delete_one({"_id": id})
-
-    if delete_result.deleted_count == 1:
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-    raise HTTPException(status_code=404, detail=f"Clarification {id} not found")
+    try:
+        # Create a completions using the questin and context
+        response = openai.Completion.create(
+            prompt=f"Answer the question based on the context below and elaborate with extra knowledge focusing on information from the context, and if the question can't be answered based on the context, say \"I don't know\"\n\nContext: {context}\n\n---\n\nQuestion: {question}\nAnswer:",
+            temperature=1,
+            max_tokens=max_tokens,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=stop_sequence,
+            model=model,
+        )
+        return response["choices"][0]["text"].strip()
+    except Exception as e:
+        print(e)
+        return ""
