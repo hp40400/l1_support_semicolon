@@ -58,7 +58,7 @@ def read_root():
 
 
 @app.post("/api/clarification/{clarificationId}")
-async def get_embedded_prompt(clarificationId: str, question: str):
+async def get_embedded_prompt(clarificationId: str, request: str):
     document_id = ObjectId(clarificationId)
     document = clarifications_collection.find_one({"_id": document_id})
     conversations = document["conversations"] # get all the existing conversations
@@ -66,7 +66,7 @@ async def get_embedded_prompt(clarificationId: str, question: str):
     df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
     df.head()
-    answer = answer_question(df, question=question, debug=False) 
+    answer = answer_question(df, question=request, debug=False) 
     # answer = "bla bla bla bla"
     new_conversation = {'request': question, "response": answer, "timestamp": current_milli_time()}
     conversations.append(new_conversation)
