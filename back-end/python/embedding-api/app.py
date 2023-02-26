@@ -35,9 +35,16 @@ import time
 import pymongo
 from bson.objectid import ObjectId
 from bson import json_util
-
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 uri = 'mongodb+srv://raheemmohamed:LlIjbnwkc7B25iKA@cluster0.xmv93el.mongodb.net/semicolon2023?retryWrites=true'
 openai.api_key = os.environ["OPENAI_API_KEY"]
 # # Replace "my_mongodb_uri" with the URI of your MongoDB instance
