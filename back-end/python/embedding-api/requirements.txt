@@ -1,6 +1,5 @@
 appdirs==1.4.4
 black==20.8b1
-click==7.1.2
 dnspython==2.0.0
 email-validator==1.1.2
 fastapi==0.62.0
@@ -14,7 +13,6 @@ pycodestyle==2.6.0
 pydantic==1.7.3
 pyflakes==2.2.0
 pymongo==3.11.1
-regex==2020.11.13
 starlette==0.13.6
 toml==0.10.2
 typed-ast==1.4.1
