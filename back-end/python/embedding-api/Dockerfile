@@ -5,6 +5,7 @@ WORKDIR /code
 ENV OPENAI_API_KEY=OPENAI_API_KEY_HERE
 
 COPY ./requirements.txt /code/requirements.txt
+ADD processed /code/processed
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 

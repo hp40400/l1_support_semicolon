@@ -40,7 +40,11 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
+<<<<<<< HEAD
     allow_origins=['*'],
+=======
+    allow_origins=["*"],
+>>>>>>> 3f5fcc79d0603a3748f9fa44eb934b1c9e8a61bb
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
