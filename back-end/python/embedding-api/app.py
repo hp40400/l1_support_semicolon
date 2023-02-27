@@ -1,7 +1,7 @@
 import os
 from sqlite3 import Date
 from this import d
-from fastapi import FastAPI, Body, HTTPException, status
+from fastapi import FastAPI, Body, HTTPException, status, Request
 from fastapi.responses import Response, JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, EmailStr
@@ -35,9 +35,16 @@ import time
 import pymongo
 from bson.objectid import ObjectId
 from bson import json_util
-
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 uri = 'mongodb+srv://raheemmohamed:LlIjbnwkc7B25iKA@cluster0.xmv93el.mongodb.net/semicolon2023?retryWrites=true'
 openai.api_key = os.environ["OPENAI_API_KEY"]
 # # Replace "my_mongodb_uri" with the URI of your MongoDB instance
@@ -49,9 +56,11 @@ clarifications_collection = db["clarifications"]
 def read_root():
     return {"Hello": "Semicolon"}
 
+class Question(BaseModel):
+    request: str
 
 @app.post("/api/clarification/{clarificationId}")
-async def get_embedded_prompt(clarificationId: str, question: str):
+async def get_embedded_prompt(clarificationId: str, question: Question):
     document_id = ObjectId(clarificationId)
     document = clarifications_collection.find_one({"_id": document_id})
     conversations = document["conversations"] # get all the existing conversations
@@ -59,12 +68,13 @@ async def get_embedded_prompt(clarificationId: str, question: str):
     df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
     df.head()
-    answer = answer_question(df, question=question, debug=False) 
+    user_question = question.request
+    answer = answer_question(df, question=user_question, debug=False) 
     # answer = "bla bla bla bla"
-    new_conversation = {'request': question, "response": answer, "timestamp": current_milli_time()}
+    new_conversation = {'request': user_question, "response": answer, "timestamp": current_milli_time()}
     conversations.append(new_conversation)
     print("before setting conversation after api call")
-    # document["conversations"] = conversations
+    document["conversations"] = conversations
     update = {"$set": {"conversations": conversations}}
     clarifications_collection.update_one({"_id": document_id}, update)
     print("after updating the document")
