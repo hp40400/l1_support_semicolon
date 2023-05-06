@@ -9,7 +9,21 @@ pipeline {
     agent any
     stages {
         stage('build') {
-            when {
+            steps {
+            sh 'echo builing....'
+            }
+        }
+        stage('test') {
+                        steps {
+            sh 'echo testing....'
+            }
+        }
+          stage('deploy') {
+                        steps {
+            sh 'echo deploying....'
+            }
+        }      
+  /*          when {
                 branch 'main'
             }
             steps {
@@ -25,6 +39,7 @@ pipeline {
                 sh 'docker run --name backend2 -p 8082:80 -d hp/node-web-app2'
                  }
             }
+            */
         }
     }
 }
