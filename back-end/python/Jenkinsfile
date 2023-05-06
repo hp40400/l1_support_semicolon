@@ -39,7 +39,7 @@ pipeline {
                 sh 'docker run --name backend2 -p 8082:80 -d hp/node-web-app2'
                  }
             }
-            */
-        }
+            
+        } */
     }
 }
