@@ -15,7 +15,7 @@ pipeline {
             steps {
                  dir('back-end/python') {                     
                 sh '''
-                API=$(cat ../../../../env)                
+                #API=$(cat ../../../../env)                
                 '''
                 //sh "cat .env"
                 sh 'docker stop backend2 || true'
