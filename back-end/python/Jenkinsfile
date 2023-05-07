@@ -21,6 +21,8 @@ pipeline {
           stage('deploy') {
                         steps {
             sh 'echo deploying....'
+            //sh 'sudo rm /home/ec2-user/my-app/app.js'
+            //sh 'sudo pkill node'
             sh 'scp -i mykey app.js ec2-user@35.91.225.44:/home/ec2-user/my-app/'
             
             }
